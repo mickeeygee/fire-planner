@@ -727,7 +727,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .eula-body p { margin:9px 0; } .eula-body .small { color:var(--mute); font-size:12.5px; }
   .eula-foot { padding:10px 18px 16px; display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--line); }
   .eula-foot a { color:var(--accent); text-align:center; text-decoration:none; font-size:13.5px; }
-  #tip { margin:18px 0 6px; text-align:center; } #tip[hidden] { display:none; } #tip a { color:var(--accent); font-size:13.5px; text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:7px 14px; display:inline-block; }
   .flag { color:var(--bad); font-weight:700; } .okc { color:var(--ok); font-weight:700; }
   .leaflet-control-layers, .leaflet-bar a { color:#111; }
   #tabs { display:flex; gap:3px; padding:3px; background:var(--panel2); border-radius:12px; margin:8px 0 4px; position:sticky; top:-14px; z-index:5; }
@@ -861,7 +860,6 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <button id="termsBtn" style="width:100%;margin-top:8px">Terms of use</button>
     <div class="sub" id="about" style="display:none;margin-top:10px">Built with Leaflet (BSD-2-Clause). Weapon figures are typical published ranges and are not authoritative. Always confirm against current doctrine, the weapon manual and your unit SOP.</div>
   </section>
-  <div id="tip" hidden><a id="tipLink" href="#" target="_blank" rel="noopener noreferrer">☕ Buy me a coffee</a></div>
   </div>
 </aside>
 <div class="mapwrap">
@@ -1816,7 +1814,7 @@ addEventListener('resize', () => {
 
 // ---------- optional tip jar: set DONATE_URL to show the link
 const DONATE_URL = 'https://buymeacoffee.com/mickeyarmyw';
-if (/^https:\/\//.test(DONATE_URL)) { $('tipLink').href = DONATE_URL; $('tip').hidden = false; $('eulaTip').href = DONATE_URL; $('eulaTip').hidden = false; }
+if (/^https:\/\//.test(DONATE_URL)) { $('eulaTip').href = DONATE_URL; $('eulaTip').hidden = false; }          // the only place the tip link appears
 
 // ---------- terms of use: shown once, and again if the version below changes
 const TERMS_KEY = 'firePlanner.terms', TERMS_VERSION = '1';
