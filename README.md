@@ -18,6 +18,8 @@ TRPs are shared by every position. Angles, sector checks and range checks are sh
 
 Picking an M240B preset sets the sector limits from its traverse (tripod 15°, bipod 40° total, split evenly around the azimuth).
 
+**Arrows:** the red aim arrow and the two orange limit arrows can be dragged along their lines to move them out of the way (and sideways to change the angle). Each one remembers where you put it, per position. **Reset arrow positions** (Setup tab, or More on a phone) puts them back.
+
 **Assault lines:** use the **+** at the top and choose **New assault line** (or the Assault tab / More menu on a phone), then tap the two ends of the assaulting element on the map. You can add as many lines as you need. Each position shows how many degrees its sector is off every line, measured at the position from whichever troop is angularly closest to the sector, and flags any line that is closer than the required angle (15° by default, editable). **Keep fire off the lines** pulls the nearest sector edge out to the required angle, working through the closest line first. If that would cut the sector below half its width (for example a 15° tripod traverse), it slides the whole sector away instead and keeps its width. Assault lines are shared by all positions.
 
 **Copy fire plan** puts a text summary on the clipboard. **Download KML** opens in Google Earth. **Save project** writes a JSON file you can open on another device.
