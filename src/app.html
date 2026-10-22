@@ -59,7 +59,7 @@
   #tabs { display:flex; gap:3px; padding:3px; background:var(--panel2); border-radius:12px; margin:8px 0 4px; position:sticky; top:-14px; z-index:5; }
   #tabs button { flex:1 1 0; min-width:0; margin:0; padding:8px 2px; background:transparent; border:0; border-radius:9px; color:var(--mute); font-weight:600; min-height:42px; }
   #tabs button.on { background:var(--accent); color:var(--accent-ink); }
-  section[data-sec] { display:none; } body[data-tab="setup"] [data-sec="setup"], body[data-tab="trp"] [data-sec="trp"], body[data-tab="more"] [data-sec="more"] { display:block; }
+  section[data-sec] { display:none; } body[data-tab="setup"] [data-sec="setup"], body[data-tab="trp"] [data-sec="trp"], body[data-tab="assault"] [data-sec="assault"], body[data-tab="more"] [data-sec="more"] { display:block; }
   .phone-only { display:none; }
   #sumRow { display:flex; align-items:center; gap:8px; margin:10px 0 4px; }
   #posSel, #p-name { flex:1 1 auto; min-width:0; width:auto; font-weight:700; }
@@ -130,7 +130,7 @@
       <div id="sumText" class="phone-only"></div>
       <div id="actRow" class="phone-only"></div>
     </div>
-    <nav id="tabs"><button data-tab="setup" class="on">Setup</button><button data-tab="trp">TRPs</button><button data-tab="more">More</button></nav>
+    <nav id="tabs"><button data-tab="setup" class="on">Setup</button><button data-tab="trp">TRPs</button><button data-tab="assault">Assault</button><button data-tab="more">More</button></nav>
   </div>
   <div id="sheetBody">
   <section data-sec="setup">
@@ -140,11 +140,6 @@
     <h2>Sector overlap</h2>
     <label class="chk"><input type="checkbox" id="showOvl" checked> Show where sectors overlap (amber)</label>
     <div class="sub" id="ovl" style="margin-top:6px"></div>
-    <h2>Assault line</h2>
-    <div class="sub">Mark the two ends of the assaulting element. Fire is kept a set number of degrees off the line, measured at each position, from whichever troop is closest to your sector.</div>
-    <div class="row"><div><label>Keep fire at least (&deg;) off the line</label><input type="number" id="asMargin" min="0" max="89" step="any" value="15"></div><div><label>&nbsp;</label><button id="asPlace" class="primary" style="width:100%">Place assault line</button></div></div>
-    <div id="asInfo" class="sub" style="margin-top:8px"></div>
-    <div class="row"><button id="asKeep">Set limit 15&deg; off the line</button><button id="asClear">Clear assault line</button></div>
     <h2>Weapon</h2>
     <div class="row"><div><label>Weapon (point/area, m)</label><select id="wpn"></select></div><div><label>Max effective range (m)</label><input type="number" id="max" min="0" step="any" placeholder="optional"></div></div>
     <div class="sub" id="wpnInfo"></div>
@@ -168,6 +163,13 @@
     </details>
     <div id="trpList"></div>
     <div class="row"><button id="tCopy">Copy fire plan</button><button id="tClear">Clear all TRPs</button></div>
+  </section>
+  <section data-sec="assault">
+    <h2>Assault line</h2>
+    <div class="sub">Mark the two ends of the assaulting element. Fire is kept a set number of degrees off the line, measured at each position, from whichever troop is closest to that position's sector. The button below fixes the position selected at the top.</div>
+    <div class="row"><div><label>Keep fire at least (&deg;) off the line</label><input type="number" id="asMargin" min="0" max="89" step="any" value="15"></div><div><label>&nbsp;</label><button id="asPlace" class="primary" style="width:100%">Place assault line</button></div></div>
+    <div id="asInfo" class="sub" style="margin-top:8px"></div>
+    <div class="row"><button id="asKeep">Keep this position 15&deg; off the line</button><button id="asClear">Clear assault line</button></div>
   </section>
   <section data-sec="more">
     <div class="banner phone-only"><b>Planning aid only.</b> Angles are true azimuth, no grid or magnetic correction. Weapon ranges are typical published figures: confirm them against your manual and unit SOP. For live-fire safety zones use a separate range safety tool.</div>
@@ -673,7 +675,7 @@ function assaultPlanLines(st) {
 function renderAssault() {
   const A = assault, m = marginDeg();
   if (document.activeElement !== $('asMargin')) $('asMargin').value = A.margin;
-  $('asKeep').textContent = `Set limit ${m}° off the line`;
+  $('asKeep').textContent = `Keep ${cur().name} ${m}° off the line`;
   const listed = positions.filter(p => p.visible !== false && originOf(p));
   $('asInfo').innerHTML = !A.A ? 'No assault line yet. Tap "Place assault line", then the two ends on the map.'
     : !A.B ? 'Tap the second end of the assault line on the map.'
@@ -724,9 +726,6 @@ function drawAssault() {
   if (!(assault.A && assault.B)) return;
   asLayer = L.layerGroup().addTo(map);
   L.polyline([ll2(assault.A), ll2(assault.B)], { color: '#2ea043', weight: 5, opacity: .95, interactive: false }).addTo(asLayer);
-  const st = cur(), o = originOf(st), sp = assaultSpan(o), m = marginDeg();
-  if (o && sp && !sp.on && sp.width + 2 * m < 340)                  // the no-fire cone: the line as seen from the active position, plus the margin on each side
-    L.polygon(sectorPoly(o, sp.lo + sp.width / 2, sp.width / 2 + m, sp.width / 2 + m, sp.far * 1.08), { color: '#a33fff', weight: 2, dashArray: '6 5', fillColor: '#a33fff', fillOpacity: .13, interactive: false }).addTo(asLayer);
 }
 
 // ---------- map tools
