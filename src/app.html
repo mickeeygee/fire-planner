@@ -263,6 +263,7 @@ const WPN = [
   { n: 'M240B bipod', pt: 600, ar: 800, gz: 600, tv: 40 }, { n: 'M240B tripod', pt: 800, ar: 1100, gz: 600, tv: 15 },
   { n: 'M2 .50 cal', pt: 1500, ar: 1830, gz: 700 }, { n: 'Mk 19 40 mm', pt: 1500, ar: 2212 }, { n: 'M203 40 mm', pt: 150, ar: 350 }
 ];
+const wpnOf = v => (v === '' || v == null) ? null : (WPN[+v] || null);
 $('wpn').innerHTML = '<option value="">Custom / none</option>' + WPN.map((w, i) => `<option value="${i}">${w.n} (${w.pt}/${w.ar})</option>`).join('');
 
 // ---------- state: a list of positions; the form edits positions[active]
@@ -280,7 +281,7 @@ const posOf = o => {                                              // older files
 function clean(o) {
   const st = blank(typeof o.name === 'string' && o.name ? o.name.slice(0, 40) : 'Position');
   const n = (v, d) => { const x = parseFloat(v); return isFinite(x) ? String(x) : d; };
-  Object.assign(st, { visible: o.visible !== false, L: posOf(o), az: n(o.az, '0'), limL: n(o.limL, '0'), limR: n(o.limR, '0'), wpn: WPN[+o.wpn] ? String(+o.wpn) : '', max: o.max === '' || o.max == null ? '' : n(o.max, '') });
+  Object.assign(st, { visible: o.visible !== false, L: posOf(o), az: n(o.az, '0'), limL: n(o.limL, '0'), limR: n(o.limR, '0'), wpn: wpnOf(o.wpn) ? String(+o.wpn) : '', max: o.max === '' || o.max == null ? '' : n(o.max, '') });
   return st;
 }
 const cleanTrps = arr => (Array.isArray(arr) ? arr : []).map(t => ({ id: ++uid, name: String((t && t.name) || 'TRP').slice(0, 30), ...(llOk(t) || { lat: NaN, lon: NaN }) })).filter(t => isFinite(t.lat)).slice(0, 120);
@@ -382,7 +383,7 @@ $('p-name').addEventListener('input', e => { cur().name = e.target.value || 'Pos
 });
 $('showOvl').onchange = () => drawSoon();
 function wpnInfo() {
-  const w = WPN[+cur().wpn]; $('wpnInfo').textContent = w ? `${w.n}: point ${w.pt} m, area ${w.ar} m${w.gz ? `, grazing fire to ${w.gz} m` : ''}${w.tv ? `, traverse ${w.tv}\u00b0 total` : ''}. Max effective range uses the area figure.` : '';
+  const w = wpnOf(cur().wpn); $('wpnInfo').textContent = w ? `${w.n}: point ${w.pt} m, area ${w.ar} m${w.gz ? `, grazing fire to ${w.gz} m` : ''}${w.tv ? `, traverse ${w.tv}\u00b0 total` : ''}. Max effective range uses the area figure.` : '';
 }
 $('wpn').onchange = e => {
   const st = cur(); snap(); st.wpn = e.target.value;
@@ -474,7 +475,7 @@ $('trpList').addEventListener('click', e => {
 });
 $('tClear').onclick = () => { if (!trps.length) return; snap(); trps = []; update(); setHint('TRPs cleared (Undo brings them back)', 5000); };
 function firePlanText(st) {
-  const o = originOf(st), az = parseFloat(st.az) || 0, lL = parseFloat(st.limL) || 0, lR = parseFloat(st.limR) || 0, w = WPN[+st.wpn] ? WPN[+st.wpn].n : 'weapon';
+  const o = originOf(st), az = parseFloat(st.az) || 0, lL = parseFloat(st.limL) || 0, lR = parseFloat(st.limR) || 0, w = wpnOf(st.wpn) ? wpnOf(st.wpn).n : 'weapon';
   return [`FIRE PLAN - ${st.name}`, `Position: ${mgrsOf(o) || fmtLL(o)}`,
     `Direction of fire: ${d3(az)}° (${Math.round(nz(az) * MIL)} mils)` + (lL + lR > 0.05 ? `; left limit ${d3(az - lL)}°, right limit ${d3(az + lR)}°` : ''),
     ...(parseFloat(st.max) > 0 ? [`Max effective range (${w}): ${parseFloat(st.max)} m`] : []),
@@ -637,8 +638,9 @@ function drawOverlap() {
 }
 function fit() {
   const st = cur(), o = originOf(st); if (!o || !map) { setHint('Place the position first'); return; }
-  const pts = [o, ...trps];
-  map.fitBounds(L.latLngBounds(pts.map(ll2)).extend(L.latLng(o.lat, o.lon).toBounds(sectorRadius(st) * 1.1)), { maxZoom: 17, padding: [30, 30] });
+  const pts = [o, ...trps, ...(assault.A ? [assault.A] : []), ...(assault.B ? [assault.B] : [])];
+  const r = parseFloat(st.max) > 0 ? parseFloat(st.max) : 500;      // fixed size: the on-screen default radius depends on the current zoom
+  map.fitBounds(L.latLngBounds(pts.map(ll2)).extend(L.latLng(o.lat, o.lon).toBounds(r * 1.1)), { maxZoom: 17, padding: [30, 30] });
 }
 function update(doFit) {
   scheduleSave(); wpnInfo(); renderSel(); readout('L'); renderTrps(); renderAssault(); draw(); renderSheet();
@@ -686,10 +688,19 @@ function keepOff() {                                                // pull the 
   if (!c) { setHint(assault.A && assault.B ? 'Place the position first' : 'Place the assault line first'); return; }
   if (c.deg >= m - 0.05) { setHint(`Already ${c.deg.toFixed(0)}° off the assault line (need ${m}°)`, 5000); return; }
   snap();
-  let side = c.side; if (!side) side = cw(c.sp.lo + c.sp.width / 2, parseFloat(st.az) || 0) < 180 ? 'cw' : 'ccw';
-  if (side === 'cw') setLimit('L', c.sp.hi + m); else setLimit('R', c.sp.lo - m);
-  update(); const n = clearance(st);
-  setHint(`${side === 'cw' ? 'Left' : 'Right'} limit set to ${d3(side === 'cw' ? c.sp.hi + m : c.sp.lo - m)}°, ${m}° off the assault line.` + (n && n.deg < m - 0.05 ? ' Sector is now a single line: aim the direction of fire to that side.' : ''), 8000);
+  const [lL, lR] = limsOf(st), az = parseFloat(st.az) || 0, w = lL + lR, a0 = az - lL;     // sector: ccw edge a0, width w
+  let side = c.side; if (!side) side = cw(c.sp.lo + c.sp.width / 2, az) < 180 ? 'cw' : 'ccw';
+  const edge = side === 'cw' ? c.sp.hi + m : c.sp.lo - m;           // bearing the near edge must be pulled to
+  const far = side === 'cw' ? a0 + w : a0;                          // the far edge, which keeps its bearing if it can
+  const gap = side === 'cw' ? cw(edge, far) : cw(far, edge);        // room left between the two edges after the move
+  let msg;
+  // shrink the near edge only if that leaves at least half the sector (and 5 deg)
+  if (w > 0.05 && gap < 180 && gap >= Math.max(5, w * 0.5)) { setLimit(side === 'cw' ? 'L' : 'R', edge); msg = `${side === 'cw' ? 'Left' : 'Right'} limit set to ${d3(edge)}°, ${m}° off the assault line.`; }
+  else {                                                            // shrinking would gut the sector (e.g. a 15 deg tripod traverse): slide it away and keep its width
+    st.az = nz(side === 'cw' ? edge + w / 2 : edge - w / 2).toFixed(1); st.limL = st.limR = (w / 2).toFixed(1); syncForm();
+    msg = `Sector moved to ${d3(side === 'cw' ? edge : edge - w)}°–${d3(side === 'cw' ? edge + w : edge)}°, ${m}° off the assault line` + (w > 0.05 ? `, keeping its ${w.toFixed(0)}° width.` : '.');
+  }
+  update(); setHint(msg, 8000);
 }
 $('asMargin').addEventListener('input', e => { assault.margin = e.target.value; scheduleSave(); renderAssault(); renderSheet(); drawSoon(); });
 $('asMargin').addEventListener('focus', snap);
@@ -844,10 +855,10 @@ const actionState = () => cur().L ? 'main' : 'start';
 function renderSheet() {
   if (!isPhone() || !positions[active]) return;
   const st = cur(), o = originOf(st), az = parseFloat(st.az) || 0, [lL, lR] = limsOf(st), parts = [`<b>${esc(st.name)}</b>`];
+  { const c = clearance(st); if (c && c.deg < marginDeg() - 0.05) parts.push(`<span style="color:var(--bad);font-weight:700">\u26A0 ${c.deg.toFixed(0)}\u00b0 off line</span>`); }   // first, so it is never cut off
   if (o) parts.push(`az ${d3(az)}°`);
   if (lL + lR > 0.05) parts.push(`${d3(az - lL)}°–${d3(az + lR)}°`);
   if (trps.length) parts.push(`${trps.length} TRP${trps.length > 1 ? 's' : ''}`);
-  { const c = clearance(st); if (c && c.deg < marginDeg() - 0.05) parts.push(`<span style="color:var(--bad)">\u26A0 ${c.deg.toFixed(0)}\u00b0 off assault line</span>`); }
   if (lastOvl) parts.push(`<span style="color:var(--warn)">${lastOvl} overlap${lastOvl > 1 ? 's' : ''}</span>`);
   $('sumText').innerHTML = parts.join(' · ');
   const state = actionState(), B = (act, icon, label, cls) => `<button data-act="${act}" class="${cls || ''}">${icon}<span>${label}</span></button>`;
