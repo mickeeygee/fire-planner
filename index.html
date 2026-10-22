@@ -722,6 +722,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .trpitem .top { display:flex; gap:6px; align-items:center; }
   .trpitem .top input { flex:1 1 0; min-width:0; font-weight:700; } .trpitem .top button { flex:none; width:42px; padding:0; }
   .trpitem .big { font:700 15px system-ui,sans-serif; margin:6px 0 2px; } .trpitem .det { font-size:13px; color:var(--mute); line-height:1.5; }
+  #tip { margin:18px 0 6px; text-align:center; } #tip[hidden] { display:none; } #tip a { color:var(--accent); font-size:13.5px; text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:7px 14px; display:inline-block; }
   .flag { color:var(--bad); font-weight:700; } .okc { color:var(--ok); font-weight:700; }
   .leaflet-control-layers, .leaflet-bar a { color:#111; }
   @media (max-width:760px), (max-height:520px) {
@@ -795,6 +796,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="row"><button id="themeBtn">Theme: <span id="themeLbl">Auto</span></button><button id="aboutBtn">About</button></div>
     <div class="sub" id="about" style="display:none;margin-top:10px">Built with Leaflet (BSD-2-Clause). Weapon figures are typical published ranges and are not authoritative. Always confirm against current doctrine, the weapon manual and your unit SOP.</div>
   </section>
+  <div id="tip" hidden><a id="tipLink" href="#" target="_blank" rel="noopener noreferrer">☕ Buy me a coffee</a></div>
 </aside>
 <div class="mapwrap">
   <div id="toolbar">
@@ -1441,6 +1443,10 @@ $('pFile').onchange = e => {
     setHint(`Opened ${positions.length} position${positions.length > 1 ? 's' : ''} (Undo restores the previous project)`, 7000);
   }).catch(() => setHint('That file is not a Fire Planner project.', 6000));
 };
+
+// ---------- optional tip jar: set DONATE_URL to show the link
+const DONATE_URL = '';
+if (/^https:\/\//.test(DONATE_URL)) { $('tipLink').href = DONATE_URL; $('tip').hidden = false; }
 
 // ---------- map and boot
 function initMap() {
