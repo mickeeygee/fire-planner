@@ -45,6 +45,8 @@
   .pin.lim { background:#ff9a1f; color:#000; width:calc(var(--pin,26px)*.92); height:calc(var(--pin,26px)*.92); font-size:calc(var(--pin,26px)*.46); }
   .pin.asl { background:#2ea043; color:#fff; border-radius:6px; font-size:calc(var(--pin,26px)*.46); }
   .pin.trp { background:#1f6feb; color:#fff; border-radius:6px; font-size:calc(var(--pin,26px)*.46); }
+  .rkey { background:rgba(20,23,27,.9); color:#fff; border:1px solid rgba(255,255,255,.55); border-radius:10px; padding:6px 10px; font:600 12px/1.55 system-ui,sans-serif; pointer-events:none; }
+  .rkey b { display:block; margin-bottom:1px; } .rkey i { display:inline-block; width:.9em; height:.9em; border-radius:3px; margin-right:6px; vertical-align:-1px; border:1px solid rgba(255,255,255,.7); }
   .lbl { position:absolute; left:100%; top:50%; transform:translate(5px,-50%); white-space:nowrap; background:rgba(20,23,27,.9); color:#fff; border:1px solid #1f6feb; border-radius:8px; padding:1px 7px; font:700 12px system-ui,sans-serif; pointer-events:none; }
   .plbl { background:rgba(20,23,27,.88); color:#fff; border:1px solid #fff; border-radius:10px; padding:2px 8px; font:600 12px system-ui,sans-serif; white-space:nowrap; transform:translate(10px,-26px); cursor:pointer; position:absolute; }
   .edge { background:rgba(20,23,27,.88); color:#fff; border:1px solid rgba(255,255,255,.7); border-radius:10px; padding:1px 7px; font:700 12px system-ui,sans-serif; white-space:nowrap; transform:translate(-50%,-50%); position:absolute; }
@@ -624,6 +626,12 @@ function setLimit(side, b) {
   st.az = nz(aL + span / 2).toFixed(1); st.limL = st.limR = (span / 2).toFixed(1);
   syncForm();
 }
+function setRangeKey(st, bands) {                                   // the colour key for the fan, shown only when a weapon is chosen
+  const el = document.getElementById('rangeKey'); if (!el) return;
+  const w = wpnOf(st.wpn);
+  el.hidden = !bands.length;
+  if (bands.length) el.innerHTML = `<b>${esc(w ? w.n : 'Fire reaches')}</b>` + bands.map(b => `<div><i style="background:${b.color}"></i>${b.names.join(' + ')} to ${rm(b.d)}</div>`).join('');
+}
 function arcPts(o, a0, span, r) { const n = Math.max(2, Math.ceil(span / 2)), pts = []; for (let i = 0; i <= n; i++) pts.push(ll2(dest(o, a0 + span * i / n, r))); return pts; }
 function bandPoly(o, a0, span, r0, r1) {                            // ring segment between r0 and r1 over a bearing span (a wedge when r0 is 0)
   const outer = arcPts(o, a0, span, r1);
@@ -639,13 +647,13 @@ function drawSector(st, o) {
     L.polygon(sectorPoly(o, az, lL, lR, r), { color: '#e0302d', weight: 2, fillColor: '#e0302d', fillOpacity: bands.length ? 0 : .12, interactive: false }).addTo(sectorLayer);
     [[az - lL], [az + lR]].forEach(([b]) => L.marker(ll2(dest(o, b, r * 1.06)), { interactive: false, keyboard: false, icon: L.divIcon({ className: '', html: `<div class="edge">${d3(b)}&deg;</div>`, iconSize: [1, 1] }) }).addTo(sectorLayer));
   } else if (maxSet && !bands.length) L.circle(ll2(o), { radius: r, color: '#e0302d', weight: 1, fillOpacity: .04, dashArray: '5 6', interactive: false }).addTo(sectorLayer);
+  setRangeKey(st, bands);
   let prev = 0;
   bands.forEach(b => {                                              // colour the zone that ends at each range, and mark where it ends
     if (lim) {
       L.polygon(bandPoly(o, az - lL, lL + lR, prev, b.d), { stroke: false, fillColor: b.color, fillOpacity: .3, interactive: false }).addTo(sectorLayer);
       L.polyline(arcPts(o, az - lL, lL + lR, b.d), { color: b.color, weight: 3, opacity: .95, interactive: false }).addTo(sectorLayer);
     } else L.polyline([ll2(dest(o, az, prev)), ll2(dest(o, az, b.d))], { color: b.color, weight: 7, opacity: .9, interactive: false }).addTo(sectorLayer);
-    L.marker(ll2(dest(o, az, b.d)), { interactive: false, keyboard: false, icon: L.divIcon({ className: '', html: `<div class="edge" style="border:2px solid ${b.color}">${b.names.join(' + ')} ${rm(b.d)}</div>`, iconSize: [1, 1] }) }).addTo(sectorLayer);
     prev = b.d;
   });
 }
@@ -1027,6 +1035,9 @@ function initMap() {
   const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' });
   sat.addTo(map); L.control.layers({ Satellite: sat, Streets: osm, 'No map (offline)': L.layerGroup() }).addTo(map);
   L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+  const keyCtl = L.control({ position: 'topleft' });               // colour key for the range bands
+  keyCtl.onAdd = () => { const d = L.DomUtil.create('div', 'rkey leaflet-control'); d.id = 'rangeKey'; d.hidden = true; return d; };
+  keyCtl.addTo(map);
   let lastNote = 0;
   [sat, osm].forEach(t => t.on('tileerror', () => { if (Date.now() - lastNote > 60000) { lastNote = Date.now(); setHint('Map tiles are not loading (no signal?). Everything else still works. Pick "No map (offline)" in the layers menu.', 8000); } }));
   map.on('zoomend', () => draw());

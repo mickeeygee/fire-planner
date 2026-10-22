@@ -18,7 +18,7 @@ TRPs are shared by every position. Angles, sector checks and range checks are sh
 
 Picking an M240B preset sets the sector limits from its traverse (tripod 15°, bipod 40° total, split evenly around the azimuth).
 
-**Range bands:** pick a weapon (Setup tab) and the fan is colored by where its fire ends: green out to grazing fire, yellow out to point-target range, orange out to area-target range, each with a labeled arc. Each TRP then says which kinds of fire reach it (for example "Only area fire reaches it"). The ranges are the typical published figures in the weapon list, so check them against your manual. A custom range with no weapon selected shows the plain red fan.
+**Range bands:** pick a weapon (Setup tab) and the fan is colored by where its fire ends: green out to grazing fire, yellow out to point-target range, orange out to area-target range, with a bright arc where each one ends. A small color key on the map (under the zoom buttons) names the weapon and gives each color's range. Each TRP then says which kinds of fire reach it (for example "Only area fire reaches it"). The ranges are the typical published figures in the weapon list, so check them against your manual. A custom range with no weapon selected shows the plain red fan.
 
 **Arrows:** the red aim arrow and the two orange limit arrows can be dragged along their lines to move them out of the way (and sideways to change the angle). Each one remembers where you put it, per position. **Reset arrow positions** (Setup tab, or More on a phone) puts them back.
 
