@@ -194,8 +194,6 @@
     <button data-tool="dir" title="Set the direction of fire">Dir</button>
     <button data-tool="limL" title="Set the left limit of fire">L lim</button>
     <button data-tool="limR" title="Set the right limit of fire">R lim</button>
-    <button data-tool="trp" title="Place TRPs">TRP</button>
-    <button data-tool="asA" title="Add an assault line">Assault</button>
     <button data-tool="del" title="Click a pin to delete it">Delete</button>
     <button id="tUndo" title="Undo (Ctrl+Z)">Undo</button>
     <button id="tGps" title="Show my live GPS position">GPS</button>
@@ -212,8 +210,6 @@
   <button data-n="asl">New assault line</button>
 </div>
 <div id="moremenu" class="menu">
-  <button data-m="asl">Add assault line</button>
-  <button data-m="asKeep">Keep fire off the assault lines</button>
   <button data-m="limL">Set left limit of fire</button>
   <button data-m="limR">Set right limit of fire</button>
   <button data-m="del">Delete pins</button>
@@ -901,14 +897,14 @@ function renderSheet() {
   const state = actionState(), B = (act, icon, label, cls) => `<button data-act="${act}" class="${cls || ''}">${icon}<span>${label}</span></button>`;
   $('actRow').className = state === 'main' ? '' : 'big';
   $('actRow').innerHTML = state === 'start' ? B('gps-L', ICON.gps, 'Use my location', 'primary') + B('place-L', ICON.pin, 'Place on map')
-    : (tool === 'trp' ? B('trp', ICON.done, 'Done', 'on') : B('trp', ICON.trp, 'Add TRP', 'primary')) + B('dir', ICON.dir, 'Aim', tool === 'dir' ? 'on' : '') + B('undo', ICON.undo, 'Undo') + B('gps', ICON.gps, 'GPS', gpsWatch != null ? 'on' : '') + B('more', ICON.more, 'More');
+    : (['trp', 'asA', 'asB'].includes(tool) ? B('done', ICON.done, 'Done', 'on') : B('dir', ICON.dir, 'Aim', tool === 'dir' ? 'on' : 'primary')) + B('undo', ICON.undo, 'Undo') + B('gps', ICON.gps, 'GPS', gpsWatch != null ? 'on' : '') + B('more', ICON.more, 'More');
   setSheet(sheetState, false, true);
 }
 $('actRow').onclick = e => {
   const b = e.target.closest('button[data-act]'); if (!b) return; const k = b.dataset.act;
   if (k === 'gps-L') useLocation('L');
   else if (k === 'place-L') setTool('L');
-  else if (k === 'trp') setTool(tool === 'trp' ? 'move' : 'trp'); else if (k === 'dir') setTool(tool === 'dir' ? 'move' : 'dir');
+  else if (k === 'done') setTool('move'); else if (k === 'dir') setTool(tool === 'dir' ? 'move' : 'dir');
   else if (k === 'undo') undo(); else if (k === 'gps') { $('tGps').click(); renderSheet(); }
   else if (k === 'more') openMenu($('moremenu'), b);
 };
@@ -924,8 +920,7 @@ function openMenu(m, anchor) {
 document.addEventListener('click', e => { if (!e.target.closest('.menu') && !e.target.closest('#actRow') && !e.target.closest('#p-new')) closeMenus(); });
 $('moremenu').onclick = e => {
   const b = e.target.closest('button[data-m]'); if (!b) return; const k = b.dataset.m; closeMenus();
-  if (k === 'asl') startAssault(); else if (k === 'asKeep') keepOff();
-  else if (k === 'limL' || k === 'limR' || k === 'del') setTool(k); else if (k === 'fit') fit();
+  if (k === 'limL' || k === 'limR' || k === 'del') setTool(k); else if (k === 'fit') fit();
   else if (k === 'copy') $('tCopy').click(); else if (k === 'kml') $('kml').click(); else if (k === 'theme') $('themeBtn').click();
 };
 function editName(on) {
