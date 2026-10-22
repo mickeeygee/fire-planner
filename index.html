@@ -719,6 +719,14 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .trpitem .top { display:flex; gap:6px; align-items:center; }
   .trpitem .top input { flex:1 1 0; min-width:0; font-weight:700; } .trpitem .top button { flex:none; width:42px; padding:0; }
   .trpitem .big { font:700 15px system-ui,sans-serif; margin:6px 0 2px; } .trpitem .det { font-size:13px; color:var(--mute); line-height:1.5; }
+  .eula { position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,.62); display:flex; align-items:center; justify-content:center; padding:12px; }
+  .eula[hidden] { display:none; }
+  .eula-card { background:var(--panel); color:var(--ink); border-radius:16px; max-width:540px; width:100%; max-height:92vh; max-height:92dvh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,.5); border:1px solid var(--line); }
+  .eula-card h2 { margin:0; padding:16px 18px 6px; font-size:19px; }
+  .eula-body { overflow-y:auto; padding:0 18px 8px; -webkit-overflow-scrolling:touch; font-size:14px; line-height:1.5; }
+  .eula-body p { margin:9px 0; } .eula-body .small { color:var(--mute); font-size:12.5px; }
+  .eula-foot { padding:10px 18px 16px; display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--line); }
+  .eula-foot a { color:var(--accent); text-align:center; text-decoration:none; font-size:13.5px; }
   #tip { margin:18px 0 6px; text-align:center; } #tip[hidden] { display:none; } #tip a { color:var(--accent); font-size:13.5px; text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:7px 14px; display:inline-block; }
   .flag { color:var(--bad); font-weight:700; } .okc { color:var(--ok); font-weight:700; }
   .leaflet-control-layers, .leaflet-bar a { color:#111; }
@@ -850,6 +858,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="row"><button id="pSave">Save project</button><button id="pOpen">Open project</button></div>
     <input type="file" id="pFile" accept=".json,application/json" hidden>
     <div class="row"><button id="themeBtn">Theme: <span id="themeLbl">Auto</span></button><button id="aboutBtn">About</button></div>
+    <button id="termsBtn" style="width:100%;margin-top:8px">Terms of use</button>
     <div class="sub" id="about" style="display:none;margin-top:10px">Built with Leaflet (BSD-2-Clause). Weapon figures are typical published ranges and are not authoritative. Always confirm against current doctrine, the weapon manual and your unit SOP.</div>
   </section>
   <div id="tip" hidden><a id="tipLink" href="#" target="_blank" rel="noopener noreferrer">☕ Buy me a coffee</a></div>
@@ -873,6 +882,24 @@ svg.leaflet-image-layer.leaflet-interactive path {
 </div>
 </div>
 
+<div id="eula" class="eula" role="dialog" aria-modal="true" aria-labelledby="eulaT" hidden>
+  <div class="eula-card">
+    <h2 id="eulaT">Before you use Fire Planner</h2>
+    <div class="eula-body">
+      <p><b>Planning aid only.</b> Fire Planner is not an approved fire plan, range safety approval or surface danger zone. It does not replace doctrine, your unit SOP, your chain of command or range control. Check every number before you rely on it.</p>
+      <p><b>The numbers can be wrong.</b> Weapon ranges, traverse limits and other figures are typical published values and may be incomplete or out of date. Confirm them against your weapon manual and current doctrine.</p>
+      <p><b>Keep sensitive data out.</b> Do not enter classified, controlled or operationally sensitive information, such as real unit locations or plans. Your positions stay in this browser on this device and are not sent to any server. Files you save, export or copy (projects, KML, fire plans) are yours to protect.</p>
+      <p><b>Not an official product.</b> This is an independent, free tool. It is not made, reviewed or endorsed by the U.S. Army, the Department of Defense or any other government agency.</p>
+      <p><b>No warranty.</b> It is provided as is, with no promises that it is accurate, complete or error-free. You use it at your own risk, and the author is not liable for any loss, injury or damage that results from using it.</p>
+      <p class="small">It is free to use. If it helps you, you can leave a tip with the link below.</p>
+    </div>
+    <div class="eula-foot">
+      <a id="eulaTip" href="#" target="_blank" rel="noopener noreferrer" hidden>&#9749; Buy me a coffee</a>
+      <button id="eulaOk" class="primary">I understand and agree</button>
+      <button id="eulaClose" hidden>Close</button>
+    </div>
+  </div>
+</div>
 <div id="newmenu" class="menu">
   <button data-n="pos">New SBF position</button>
   <button data-n="trp">New TRP</button>
@@ -1789,7 +1816,14 @@ addEventListener('resize', () => {
 
 // ---------- optional tip jar: set DONATE_URL to show the link
 const DONATE_URL = 'https://buymeacoffee.com/mickeyarmyw';
-if (/^https:\/\//.test(DONATE_URL)) { $('tipLink').href = DONATE_URL; $('tip').hidden = false; }
+if (/^https:\/\//.test(DONATE_URL)) { $('tipLink').href = DONATE_URL; $('tip').hidden = false; $('eulaTip').href = DONATE_URL; $('eulaTip').hidden = false; }
+
+// ---------- terms of use: shown once, and again if the version below changes
+const TERMS_KEY = 'firePlanner.terms', TERMS_VERSION = '1';
+function showTerms(first) { $('eula').hidden = false; $('eulaOk').hidden = !first; $('eulaClose').hidden = first; $('eula').querySelector('.eula-body').scrollTop = 0; (first ? $('eulaOk') : $('eulaClose')).focus(); }
+$('eulaOk').onclick = () => { try { localStorage.setItem(TERMS_KEY, JSON.stringify({ v: TERMS_VERSION, at: new Date().toISOString() })); } catch (e) { /* ignore */ } $('eula').hidden = true; };
+$('eulaClose').onclick = () => { $('eula').hidden = true; };
+$('termsBtn').onclick = () => showTerms(false);
 
 // ---------- map and boot
 function initMap() {
@@ -1817,6 +1851,8 @@ function boot() {
   try { clearView = localStorage.getItem(VIEW_KEY) === '1'; } catch (e) { /* ignore */ }
   $('tView').classList.toggle('active', clearView); $('tView').textContent = clearView ? 'Show arrows' : 'Clear view';
   syncForm(); applyPhone(); initMap(); update(restored && !!cur().L);
+  let accepted = false; try { const t = JSON.parse(localStorage.getItem(TERMS_KEY) || 'null'); accepted = !!t && t.v === TERMS_VERSION; } catch (e) { /* ignore */ }
+  if (!accepted) showTerms(true);
   setTimeout(() => { if (map) map.invalidateSize(); }, 250);
   if (restored) setHint(`Restored ${positions.length} position${positions.length > 1 ? 's' : ''} from your last session`, 6000);
   else setHint(isPhone() ? 'Tap "Use my location" or "Place on map" to start' : 'Start with the Left tool, or type coordinates in the sidebar', 8000);

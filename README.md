@@ -33,6 +33,9 @@ Everything is stored in your own browser. Nothing is sent to any server (map pic
 ## On a phone
 The map fills the screen and the controls sit in a bottom sheet. Drag the handle up for the full controls (Setup, TRPs, More) and down to a compact bar with big one-tap buttons: **Use my location** or **Place on map** to start, then **Add TRP**, **Aim**, **Undo**, **GPS** and **More**. Turned sideways, the controls become a panel on the right.
 
+## Terms of use
+The first time someone opens the app they see a short plain-language terms screen (planning aid only, check every number, keep sensitive data out, not an official product, no warranty) and must accept it once. It is shown again if the wording changes (bump `TERMS_VERSION` in `src/app.html`). It can be reopened from the **More** tab. This is a disclaimer written by the project, not legal advice.
+
 ## Things to know
 - Angles are measured from the direction of fire at the position, in true degrees (no grid or magnetic correction). 6400 mils per circle.
 - Weapon ranges are typical published figures, not authoritative. Check them against the weapon manual and your unit SOP. The range box is editable.
