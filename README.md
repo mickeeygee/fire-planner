@@ -22,7 +22,7 @@ Picking an M240B preset sets the sector limits from its traverse (tripod 15°, b
 
 **Arrows:** the red aim arrow and the two orange limit arrows can be dragged along their lines to move them out of the way (and sideways to change the angle). Each one remembers where you put it, per position. **Reset arrow positions** (Setup tab, or More on a phone) puts them back.
 
-**Clear view:** a button on the map toolbar (and in the phone action row) hides the red and orange arrows so only the fan, lines, labels and pins show. It turns into **Show arrows**, and the choice is remembered on that device.
+**Clear view:** a button on the map toolbar (and in the phone action row) hides the red and orange arrows and the color key so only the fan, lines, labels and pins show. It turns into **Show arrows**, and the choice is remembered on that device.
 
 **Assault lines:** use the **+** at the top and choose **New assault line** (or the Assault tab / More menu on a phone), then tap the two ends of the assaulting element on the map. You can add as many lines as you need. Each position shows how many degrees its sector is off every line, measured at the position from whichever troop is angularly closest to the sector, and flags any line that is closer than the required angle (15° by default, editable). **Keep fire off the lines** pulls the nearest sector edge out to the required angle, working through the closest line first. If that would cut the sector below half its width (for example a 15° tripod traverse), it slides the whole sector away instead and keeps its width. Assault lines are shared by all positions.
 

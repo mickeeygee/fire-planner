@@ -629,7 +629,7 @@ function setLimit(side, b) {
 function setRangeKey(st, bands) {                                   // the colour key for the fan, shown only when a weapon is chosen
   const el = document.getElementById('rangeKey'); if (!el) return;
   const w = wpnOf(st.wpn);
-  el.hidden = !bands.length;
+  el.hidden = !bands.length || clearView;                            // Clear view hides the key along with the arrows
   if (bands.length) el.innerHTML = `<b>${esc(w ? w.n : 'Fire reaches')}</b>` + bands.map(b => `<div><i style="background:${b.color}"></i>${b.names.join(' + ')} to ${rm(b.d)}</div>`).join('');
 }
 function arcPts(o, a0, span, r) { const n = Math.max(2, Math.ceil(span / 2)), pts = []; for (let i = 0; i <= n; i++) pts.push(ll2(dest(o, a0 + span * i / n, r))); return pts; }
