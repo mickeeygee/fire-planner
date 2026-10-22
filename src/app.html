@@ -187,9 +187,9 @@ function inv(a, b) {                                              // distance (m
 
 // ---------- weapon presets: typical published employment ranges (m). Planning defaults only.
 const WPN = [
-  // pt = point target, ar = area target, gz = maximum grazing fire (all metres)
+  // pt = point target, ar = area target, gz = maximum grazing fire (metres); tv = total traverse without moving the mount (degrees)
   { n: 'M4 / M16 rifle', pt: 500, ar: 600 }, { n: 'M249 SAW', pt: 600, ar: 800, gz: 600 },
-  { n: 'M240B bipod', pt: 600, ar: 800, gz: 600 }, { n: 'M240B tripod', pt: 800, ar: 1100, gz: 600 },
+  { n: 'M240B bipod', pt: 600, ar: 800, gz: 600, tv: 40 }, { n: 'M240B tripod', pt: 800, ar: 1100, gz: 600, tv: 15 },
   { n: 'M2 .50 cal', pt: 1500, ar: 1830, gz: 700 }, { n: 'Mk 19 40 mm', pt: 1500, ar: 2212 }, { n: 'M203 40 mm', pt: 150, ar: 350 }
 ];
 $('wpn').innerHTML = '<option value="">Custom / none</option>' + WPN.map((w, i) => `<option value="${i}">${w.n} (${w.pt}/${w.ar})</option>`).join('');
@@ -303,11 +303,14 @@ $('perp').onclick = () => {
   setHint(`Facing ${st.az}°, perpendicular to the line (flip it with +180 if your target is behind)`, 6000);
 };
 function wpnInfo() {
-  const w = WPN[+cur().wpn]; $('wpnInfo').textContent = w ? `${w.n}: point ${w.pt} m, area ${w.ar} m${w.gz ? `, grazing fire to ${w.gz} m` : ''}. Max effective range uses the area figure.` : '';
+  const w = WPN[+cur().wpn]; $('wpnInfo').textContent = w ? `${w.n}: point ${w.pt} m, area ${w.ar} m${w.gz ? `, grazing fire to ${w.gz} m` : ''}${w.tv ? `, traverse ${w.tv}\u00b0 total` : ''}. Max effective range uses the area figure.` : '';
 }
 $('wpn').onchange = e => {
   const st = cur(); snap(); st.wpn = e.target.value;
-  if (e.target.value !== '') { st.max = String(WPN[+e.target.value].ar); $('max').value = st.max; }
+  if (e.target.value !== '') {
+    const w = WPN[+e.target.value]; st.max = String(w.ar); $('max').value = st.max;
+    if (w.tv) { st.limL = st.limR = String(w.tv / 2); $('limL').value = st.limL; $('limR').value = st.limR; setHint(`${w.n}: sector set to ${w.tv}\u00b0 total traverse (${w.tv / 2}\u00b0 each side of ${d3(parseFloat(st.az) || 0)}\u00b0). Edit the limits if you need more.`, 8000); }
+  }
   update();
 };
 $('max').addEventListener('input', e => { const st = cur(); st.max = e.target.value; st.wpn = ''; $('wpn').value = ''; update(); });
