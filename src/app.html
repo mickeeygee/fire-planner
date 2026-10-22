@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14171b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Fire Planner</title>
+<style>
+/*{{LEAFLET_CSS}}*/
+</style>
+<style>
+  :root { --bg:#f3f4f6; --panel:#ffffff; --panel2:#eceff3; --ink:#14181d; --mute:#566170; --line:#cfd5dc; --accent:#0b5bd3; --accent-ink:#ffffff; --warn:#7a4e00; --warnbg:#fff1cc; --ok:#17692e; --bad:#b3261e; --tap:38px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#101317; --panel:#1b2026; --panel2:#262d35; --ink:#eef1f4; --mute:#a3adb9; --line:#343c46; --accent:#5aa2ff; --accent-ink:#06131f; --warn:#f2cc60; --warnbg:#3a2f10; --ok:#56d364; --bad:#ff7b72; color-scheme:dark; } }
+  :root[data-theme="dark"] { --bg:#101317; --panel:#1b2026; --panel2:#262d35; --ink:#eef1f4; --mute:#a3adb9; --line:#343c46; --accent:#5aa2ff; --accent-ink:#06131f; --warn:#f2cc60; --warnbg:#3a2f10; --ok:#56d364; --bad:#ff7b72; color-scheme:dark; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font:14px/1.4 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); overscroll-behavior:none; }
+  .wrap { display:grid; grid-template-columns:370px minmax(0,1fr); height:100vh; height:100dvh; }
+  aside { min-width:0; background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:14px; }
+  h1 { font-size:20px; margin:0; } .sub { color:var(--mute); font-size:12.5px; margin:2px 0 6px; }
+  .banner { background:var(--warnbg); color:var(--warn); border-radius:8px; padding:8px 10px; font-size:12.5px; margin:8px 0; }
+  label { display:block; font-size:12.5px; color:var(--mute); margin:10px 0 3px; }
+  label.chk { display:flex; gap:6px; align-items:center; color:var(--ink); font-size:13.5px; }
+  input[type=text], input[type=number], select { width:100%; min-height:var(--tap); padding:6px 9px; font:inherit; color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:8px; }
+  input.bad { border-color:var(--bad); }
+  button { font:inherit; min-height:var(--tap); padding:6px 10px; color:var(--accent); background:var(--panel2); border:1px solid var(--line); border-radius:9px; cursor:pointer; }
+  button.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600; }
+  button:active { filter:brightness(.92); }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .row3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
+  .row > button, .row3 > button { margin-top:8px; }
+  .readout { font:12px ui-monospace,Menlo,monospace; color:var(--mute); margin-top:3px; min-height:16px; word-break:break-all; } .readout.err { color:var(--bad); }
+  .posbar { display:grid; grid-template-columns:1fr auto auto auto; gap:6px; margin:10px 0 6px; }
+  .posbar select { min-width:0; } .posbar button { padding:6px 12px; }
+  #tabs { display:flex; gap:3px; padding:3px; background:var(--panel2); border-radius:12px; margin:8px 0 4px; position:sticky; top:-14px; z-index:5; }
+  #tabs button { flex:1 1 0; min-width:0; margin:0; padding:7px 2px; background:transparent; border:0; border-radius:9px; color:var(--mute); font-weight:600; }
+  #tabs button.on { background:var(--accent); color:var(--accent-ink); }
+  section[data-sec] { display:none; } body[data-tab="pos"] [data-sec="pos"], body[data-tab="aim"] [data-sec="aim"], body[data-tab="trp"] [data-sec="trp"], body[data-tab="proj"] [data-sec="proj"] { display:block; }
+  h2 { font-size:15px; margin:12px 0 2px; }
+  .mapwrap { position:relative; height:100%; min-height:0; min-width:0; overflow:hidden; }
+  #map { position:absolute; inset:0; }
+  #toolbar { position:absolute; z-index:1100; top:10px; left:50%; transform:translateX(-50%); display:flex; gap:4px; flex-wrap:wrap; justify-content:center; max-width:calc(100% - 110px); padding:5px; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,.3); }
+  #toolbar button { min-height:34px; padding:4px 9px; font-size:13px; } #toolbar button.active { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  #hint { position:absolute; z-index:1100; bottom:28px; left:50%; transform:translateX(-50%); background:rgba(20,23,27,.92); color:#fff; border-radius:12px; padding:8px 14px; max-width:min(560px,calc(100% - 24px)); text-align:center; font-size:13px; pointer-events:none; }
+  #hint:empty { display:none; }
+  .nomap { display:flex; align-items:center; justify-content:center; height:100%; color:var(--mute); text-align:center; padding:20px; }
+  .pin { width:var(--pin,26px); height:var(--pin,26px); border-radius:50%; background:var(--accent); color:var(--accent-ink); font-weight:700; font-size:calc(var(--pin,26px)*.5); display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 1px 5px rgba(0,0,0,.5); cursor:grab; }
+  .pin.mid { width:calc(var(--pin,26px)*.7); height:calc(var(--pin,26px)*.7); background:#fff; color:#000; border-color:var(--accent); font-size:calc(var(--pin,26px)*.42); }
+  .pin.aim { background:#e0302d; color:#fff; font-size:calc(var(--pin,26px)*.55); }
+  .pin.lim { background:#ff9a1f; color:#000; width:calc(var(--pin,26px)*.92); height:calc(var(--pin,26px)*.92); font-size:calc(var(--pin,26px)*.46); }
+  .pin.trp { background:#1f6feb; color:#fff; border-radius:6px; font-size:calc(var(--pin,26px)*.46); }
+  .lbl { position:absolute; left:100%; top:50%; transform:translate(5px,-50%); white-space:nowrap; background:rgba(20,23,27,.9); color:#fff; border:1px solid #1f6feb; border-radius:8px; padding:1px 7px; font:700 12px system-ui,sans-serif; pointer-events:none; }
+  .plbl { background:rgba(20,23,27,.88); color:#fff; border:1px solid #fff; border-radius:10px; padding:2px 8px; font:600 12px system-ui,sans-serif; white-space:nowrap; transform:translate(10px,-26px); cursor:pointer; position:absolute; }
+  .edge { background:rgba(20,23,27,.88); color:#fff; border:1px solid rgba(255,255,255,.7); border-radius:10px; padding:1px 7px; font:700 12px system-ui,sans-serif; white-space:nowrap; transform:translate(-50%,-50%); position:absolute; }
+  .pin, #toolbar, #hint { -webkit-user-select:none; user-select:none; }
+  .trpitem { border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin:8px 0; background:var(--panel2); }
+  .trpitem .top { display:flex; gap:6px; align-items:center; }
+  .trpitem .top input { flex:1 1 0; min-width:0; font-weight:700; } .trpitem .top button { flex:none; width:42px; padding:0; }
+  .trpitem .big { font:700 15px system-ui,sans-serif; margin:6px 0 2px; } .trpitem .det { font-size:13px; color:var(--mute); line-height:1.5; }
+  .flag { color:var(--bad); font-weight:700; } .okc { color:var(--ok); font-weight:700; }
+  .leaflet-control-layers, .leaflet-bar a { color:#111; }
+  @media (max-width:760px), (max-height:520px) {
+    .wrap { display:flex; flex-direction:column; }
+    .mapwrap { flex:0 0 46dvh; order:1; } aside { order:2; flex:1 1 0; border-right:0; border-top:1px solid var(--line); padding:10px 12px 28px; }
+    #toolbar { left:8px; right:8px; top:8px; transform:none; max-width:none; flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start; -webkit-overflow-scrolling:touch; }
+    #toolbar button { flex:none; min-height:40px; }
+    input[type=text], input[type=number], select { font-size:16px; }
+    #hint { top:60px; bottom:auto; }
+    h1, aside > .sub { display:none; } .banner { font-size:11.5px; padding:5px 8px; margin:0 0 6px; }
+    .leaflet-top .leaflet-control { margin-top:62px; }
+  }
+</style>
+</head>
+<body data-tab="pos">
+<div class="wrap">
+<aside>
+  <h1>Fire Planner</h1>
+  <div class="sub">Support-by-fire positions, sectors of fire and target reference points</div>
+  <div class="banner"><b>Planning aid only.</b> Angles are true azimuth, no grid or magnetic correction. Weapon ranges are typical published figures: confirm them against your manual and unit SOP. For live-fire safety zones use a separate range safety tool.</div>
+  <div class="posbar">
+    <select id="posSel" aria-label="Position"></select>
+    <button id="posNew" title="New position">+</button><button id="posCopy" title="Copy this position">Copy</button><button id="posDel" title="Delete this position">Del</button>
+  </div>
+  <input type="text" id="posName" maxlength="40" autocomplete="off" aria-label="Position name">
+  <nav id="tabs"><button data-tab="pos" class="on">Position</button><button data-tab="aim">Aim</button><button data-tab="trp">TRPs</button><button data-tab="proj">Project</button></nav>
+
+  <section data-sec="pos">
+    <h2>Firing position</h2>
+    <div class="sub">Place the left and right ends of the position, or a single point. Type lat/lon (<code>35.1, -79.0</code>) or MGRS (<code>17S QV 12345 67890</code>), or use Add on the map toolbar.</div>
+    <label>Left end</label><input type="text" id="cL" placeholder="lat, lon  or  MGRS" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"><div class="readout" id="rL"></div>
+    <label>Right end</label><input type="text" id="cR" placeholder="lat, lon  or  MGRS" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"><div class="readout" id="rR"></div>
+    <label class="chk"><input type="checkbox" id="single"> Single point (ignore right end)</label>
+    <div class="readout" id="lineinfo"></div>
+    <div class="row"><button id="locL">Left end &rarr; my location</button><button id="locR">Right end &rarr; my location</button></div>
+    <div class="row3"><button data-clear="L">Clear left</button><button data-clear="R">Clear right</button><button data-clear="all">Clear all</button></div>
+  </section>
+
+  <section data-sec="aim">
+    <h2>Direction of fire and sector</h2>
+    <label>Azimuth (&deg; true), or drag the red arrow on the map</label><input type="number" id="az" step="any" value="0">
+    <div class="row"><div><label>Left limit (&deg; left of azimuth)</label><input type="number" id="limL" min="0" max="179" step="any" value="0"></div><div><label>Right limit (&deg; right of azimuth)</label><input type="number" id="limR" min="0" max="179" step="any" value="0"></div></div>
+    <button id="perp" style="margin-top:8px;width:100%">Face perpendicular to the line</button>
+    <h2>Weapon</h2>
+    <div class="row"><div><label>Weapon (point/area, m)</label><select id="wpn"></select></div><div><label>Max effective range (m)</label><input type="number" id="max" min="0" step="any" placeholder="optional"></div></div>
+    <div class="sub">The sector fan on the map is drawn out to the max effective range. Preset ranges are typical published figures.</div>
+  </section>
+
+  <section data-sec="trp">
+    <h2>Target reference points</h2>
+    <div class="sub">Angles are measured from the <b>direction of fire</b> (the azimuth on the Aim tab) at the middle of the position.</div>
+    <label>Add by coordinate</label>
+    <div class="row" style="grid-template-columns:1fr auto"><input type="text" id="tC" placeholder="lat, lon  or  MGRS" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"><button id="tAddC">Add</button></div>
+    <label>Or by azimuth and distance from the position</label>
+    <div class="row3" style="grid-template-columns:1fr 1fr auto"><input type="number" id="tAz" placeholder="az &deg;" step="any"><input type="number" id="tDist" placeholder="meters" min="1" step="any"><button id="tAddP">Add</button></div>
+    <button id="tMap" style="margin-top:8px;width:100%">Add TRP by tapping the map</button>
+    <div id="trpList"></div>
+    <div class="row"><button id="tCopy">Copy fire plan</button><button id="tClear">Clear all TRPs</button></div>
+  </section>
+
+  <section data-sec="proj">
+    <h2>Project</h2>
+    <div class="sub">Everything is saved automatically in this browser. Nothing is sent to any server. Map pictures load from Esri World Imagery and OpenStreetMap.</div>
+    <button class="primary" id="kml" style="width:100%">Download KML (Google Earth)</button>
+    <div class="row"><button id="pSave">Save project</button><button id="pOpen">Open project</button></div>
+    <input type="file" id="pFile" accept=".json,application/json" hidden>
+    <div class="row"><button id="themeBtn">Theme: <span id="themeLbl">Auto</span></button><button id="aboutBtn">About</button></div>
+    <div class="sub" id="about" style="display:none;margin-top:10px">Built with Leaflet (BSD-2-Clause). Weapon figures are typical published ranges and are not authoritative. Always confirm against current doctrine, the weapon manual and your unit SOP.</div>
+  </section>
+</aside>
+<div class="mapwrap">
+  <div id="toolbar">
+    <button data-tool="move" class="active" title="Drag pins and handles (Esc)">Move</button>
+    <button data-tool="L" title="Place the left end">Left</button>
+    <button data-tool="R" title="Place the right end">Right</button>
+    <button data-tool="dir" title="Set the direction of fire">Dir</button>
+    <button data-tool="limL" title="Set the left limit of fire">L lim</button>
+    <button data-tool="limR" title="Set the right limit of fire">R lim</button>
+    <button data-tool="trp" title="Place TRPs">TRP</button>
+    <button data-tool="del" title="Click a pin to delete it">Delete</button>
+    <button id="tUndo" title="Undo (Ctrl+Z)">Undo</button>
+    <button id="tGps" title="Show my live GPS position">GPS</button>
+    <button id="tFit" title="Zoom to this position">Fit</button>
+  </div>
+  <div id="hint"></div>
+  <div id="map"><div class="nomap">Loading map&hellip; (map tiles need internet; coordinates, angles and the KML export all work offline)</div></div>
+</div>
+</div>
+
+<script>
+/*{{LEAFLET_JS}}*/
+</script>
+<script>
+/*{{MGRS_JS}}*/
+</script>
+<script>
+// ---------- helpers
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const TOUCH = matchMedia('(pointer:coarse)').matches;
+const PIN = TOUCH ? 40 : 26;
+document.documentElement.style.setProperty('--pin', PIN + 'px');
+const nz = d => ((d % 360) + 360) % 360;
+const off180 = d => (((d % 360) + 540) % 360) - 180;              // signed angle: + right, - left
+const d3 = b => String(Math.round(nz(b)) % 360).padStart(3, '0');
+const MIL = 6400 / 360;                                           // NATO mil
+const numv = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : null; };
+const fmtLL = p => `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`;
+const mgrsOf = p => MGRS.toMGRS(p.lat, p.lon, 5);
+
+// spherical geometry
+const R_E = 6371008.8, rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
+function dest(o, brg, dist) {                                     // point `dist` m from o along bearing brg
+  const b = rad(brg), dd = dist / R_E, la1 = rad(o.lat), lo1 = rad(o.lon);
+  const la2 = Math.asin(Math.sin(la1) * Math.cos(dd) + Math.cos(la1) * Math.sin(dd) * Math.cos(b));
+  const lo2 = lo1 + Math.atan2(Math.sin(b) * Math.sin(dd) * Math.cos(la1), Math.cos(dd) - Math.sin(la1) * Math.sin(la2));
+  return { lat: deg(la2), lon: ((deg(lo2) + 540) % 360) - 180 };
+}
+function inv(a, b) {                                              // distance (m) and initial bearing from a to b
+  const f1 = rad(a.lat), f2 = rad(b.lat), dl = rad(b.lon - a.lon);
+  const h = Math.sin((f2 - f1) / 2) ** 2 + Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) ** 2;
+  const dist = 2 * R_E * Math.asin(Math.min(1, Math.sqrt(h)));
+  const br = nz(deg(Math.atan2(Math.sin(dl) * Math.cos(f2), Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl))));
+  return { dist, bearing: br };
+}
+
+// ---------- weapon presets: typical published employment ranges (m). Planning defaults only.
+const WPN = [
+  { n: 'M4 / M16 rifle', pt: 500, ar: 600 }, { n: 'M249 SAW', pt: 600, ar: 800 }, { n: 'M240B', pt: 800, ar: 1100 },
+  { n: 'M2 .50 cal', pt: 1500, ar: 1830 }, { n: 'Mk 19 40 mm', pt: 1500, ar: 2212 }, { n: 'M203 40 mm', pt: 150, ar: 350 }
+];
+$('wpn').innerHTML = '<option value="">Custom / none</option>' + WPN.map((w, i) => `<option value="${i}">${w.n} (${w.pt}/${w.ar})</option>`).join('');
+
+// ---------- state: a list of positions; the form edits positions[active]
+const KEY = 'firePlanner.v1', THEME_KEY = 'firePlanner.theme';
+let positions = [], active = 0, uid = 0, tool = 'move', map = null;
+const blank = (name, from) => ({ id: ++uid, name, visible: true, L: null, R: null, single: false, az: '0', limL: '0', limR: '0', wpn: from ? from.wpn : '', max: from ? from.max : '', trps: [] });
+const cur = () => positions[active];
+const isSingle = st => st.single || !st.R;
+const originOf = st => st && st.L ? (isSingle(st) ? st.L : { lat: (st.L.lat + st.R.lat) / 2, lon: (st.L.lon + st.R.lon) / 2 }) : null;
+const llOk = p => p && isFinite(+p.lat) && isFinite(+p.lon) && Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180 ? { lat: +p.lat, lon: +p.lon } : null;
+function clean(o) {
+  const st = blank(typeof o.name === 'string' && o.name ? o.name.slice(0, 40) : 'Position');
+  const n = (v, d) => { const x = parseFloat(v); return isFinite(x) ? String(x) : d; };
+  Object.assign(st, { visible: o.visible !== false, L: llOk(o.L), R: llOk(o.R), single: !!o.single, az: n(o.az, '0'), limL: n(o.limL, '0'), limR: n(o.limR, '0'), wpn: WPN[+o.wpn] ? String(+o.wpn) : '', max: o.max === '' || o.max == null ? '' : n(o.max, ''),
+    trps: (Array.isArray(o.trps) ? o.trps : []).map(t => ({ id: ++uid, name: String((t && t.name) || 'TRP').slice(0, 30), ...(llOk(t) || { lat: NaN, lon: NaN }) })).filter(t => isFinite(t.lat)).slice(0, 80) });
+  return st;
+}
+
+// ---------- undo (whole project)
+const hist = [];
+const snapStr = () => JSON.stringify({ positions, active });
+function snap() { const s = snapStr(); if (hist[hist.length - 1] !== s) { hist.push(s); if (hist.length > 80) hist.shift(); } }
+function undo() {
+  const s = hist.pop(); if (!s) { setHint('Nothing to undo'); return; }
+  const o = JSON.parse(s); positions = o.positions; active = Math.min(o.active, positions.length - 1);
+  syncForm(); update(); setHint('Undone');
+}
+
+// ---------- tactical maths: where is a TRP relative to the direction of fire?
+function trpCalc(st, t) {
+  const o = originOf(st); if (!o) return null;
+  const v = inv(o, t), az = parseFloat(st.az) || 0;
+  const lL = Math.max(0, parseFloat(st.limL) || 0), lR = Math.max(0, parseFloat(st.limR) || 0), off = off180(v.bearing - az), max = parseFloat(st.max);
+  return { dist: v.dist, brg: v.bearing, off, lim: lL + lR > 0.05, inside: off >= -lL - 0.05 && off <= lR + 0.05, toL: off + lL, toR: lR - off, max: max > 0 ? max : null };
+}
+function offText(c) {
+  const a = Math.abs(c.off);
+  if (a < 0.5) return 'on the direction of fire';
+  return `${a.toFixed(0)}° (${Math.round(a * MIL)} mils) ${c.off > 0 ? 'right' : 'left'} of the direction of fire` + (a > 90 ? ' (behind the firing line)' : '');
+}
+function secText(c) {
+  if (!c.lim) return 'no left/right limits set';
+  if (c.inside) return `inside the sector, ${Math.max(0, c.toL).toFixed(0)}° from the left limit and ${Math.max(0, c.toR).toFixed(0)}° from the right limit`;
+  return c.off < 0 ? `OUTSIDE the sector, ${(-c.toL).toFixed(0)}° past the left limit` : `OUTSIDE the sector, ${(-c.toR).toFixed(0)}° past the right limit`;
+}
+const rngText = c => !c.max ? '' : c.dist <= c.max ? `within max effective range (${Math.round(c.max - c.dist)} m to spare)` : `BEYOND max effective range by ${Math.round(c.dist - c.max)} m`;
+function trpLine(st, t) {
+  const c = trpCalc(st, t), g = mgrsOf(t), r = rngText(c);
+  return `${t.name}: ${Math.round(c.dist).toLocaleString()} m, azimuth ${d3(c.brg)}°, ${offText(c)}; ${secText(c)}${r ? '; ' + r : ''}${g ? '. Grid ' + g : ''}`;
+}
+
+// ---------- hints, theme, tabs
+let hintT = 0;
+function setHint(t, ms) { $('hint').textContent = t || ''; clearTimeout(hintT); if (t && tool === 'move') hintT = setTimeout(() => { if (tool === 'move') $('hint').textContent = ''; }, ms || 4000); }
+const HINTS = { L: 'Click the map to place the LEFT end of the position', R: 'Click the map to place the RIGHT end of the position', dir: 'Click the map in the direction of fire',
+  limL: 'Click the map in the direction of the LEFT limit of fire', limR: 'Click the map in the direction of the RIGHT limit of fire', trp: 'Click the map to place a TRP. Press Esc when finished', del: 'Click a pin to delete it' };
+const verb = t => TOUCH ? t.replace(/^Click/, 'Tap') : t;
+function setTool(t) {
+  tool = t;
+  document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
+  if (map) map.getContainer().style.cursor = ['L', 'R', 'dir', 'limL', 'limR', 'trp'].includes(t) ? 'crosshair' : '';
+  $('hint').textContent = t === 'move' ? '' : verb(HINTS[t]);
+}
+function applyTheme(m) {
+  m = ['light', 'dark'].includes(m) ? m : 'auto';
+  if (m === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', m);
+  $('themeLbl').textContent = { auto: 'Auto', light: 'Light', dark: 'Dark' }[m];
+  try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* ignore */ }
+}
+$('themeBtn').onclick = () => applyTheme({ Auto: 'light', Light: 'dark', Dark: 'auto' }[$('themeLbl').textContent]);
+$('aboutBtn').onclick = () => { const a = $('about'); a.style.display = a.style.display === 'none' ? '' : 'none'; };
+$('tabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (!b) return; document.body.dataset.tab = b.dataset.tab; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b)); };
+
+// ---------- form <-> position
+let syncId = null;
+function syncForm() {
+  const st = cur(); syncId = st.id;
+  $('posName').value = st.name; $('single').checked = !!st.single;
+  $('cL').value = st.L ? fmtLL(st.L) : ''; $('cR').value = st.R ? fmtLL(st.R) : '';
+  $('az').value = st.az; $('limL').value = st.limL; $('limR').value = st.limR; $('wpn').value = st.wpn; $('max').value = st.max;
+  ['cL', 'cR'].forEach(id => $(id).classList.remove('bad'));
+}
+function readout(w) {
+  const st = cur(), p = st[w], el = $('r' + w); el.className = 'readout'; el.textContent = '';
+  if (p) el.textContent = (mgrsOf(p) || 'outside MGRS range') + '  ·  ' + fmtLL(p);
+}
+function setPoint(w, ll, writeBox) {
+  const st = cur(); st[w] = ll ? { lat: ll.lat, lon: ll.lon } : null;
+  if (writeBox !== false) $('c' + w).value = ll ? fmtLL(ll) : '';
+  $('c' + w).classList.remove('bad');
+}
+function typed(w) {
+  snap(); const t = $('c' + w).value.trim();
+  if (!t) { setPoint(w, null, false); update(true); return; }
+  const ll = MGRS.parseCoord(t);
+  if (!ll) { $('c' + w).classList.add('bad'); $('r' + w).className = 'readout err'; $('r' + w).textContent = 'Not recognised. Use "lat, lon" or MGRS like 17S QV 12345 67890'; return; }
+  setPoint(w, ll, false); update(true);
+}
+['L', 'R'].forEach(w => $('c' + w).addEventListener('change', () => typed(w)));
+$('posName').addEventListener('input', e => { cur().name = e.target.value || 'Position'; scheduleSave(); renderSel(); drawSoon(); });
+[['az', 'az'], ['limL', 'limL'], ['limR', 'limR']].forEach(([id, k]) => {
+  $(id).addEventListener('focus', snap);
+  $(id).addEventListener('input', () => { cur()[k] = $(id).value; update(); });
+});
+$('single').onchange = () => { snap(); cur().single = $('single').checked; update(); };
+$('perp').onclick = () => {
+  const st = cur(); if (!st.L || !st.R || isSingle(st)) { setHint('Place both ends of the line first'); return; }
+  snap(); const v = inv(st.L, st.R); st.az = nz(v.bearing - 90).toFixed(1); $('az').value = st.az; update();
+  setHint(`Facing ${st.az}°, perpendicular to the line (flip it with +180 if your target is behind)`, 6000);
+};
+$('wpn').onchange = e => {
+  const st = cur(); snap(); st.wpn = e.target.value;
+  if (e.target.value !== '') { st.max = String(WPN[+e.target.value].ar); $('max').value = st.max; }
+  update();
+};
+$('max').addEventListener('input', e => { const st = cur(); st.max = e.target.value; st.wpn = ''; $('wpn').value = ''; update(); });
+document.querySelectorAll('[data-clear]').forEach(b => b.onclick = () => {
+  snap(); const w = b.dataset.clear;
+  if (w === 'all') { setPoint('L', null); setPoint('R', null); } else setPoint(w, null);
+  update();
+});
+function useLocation(w) {
+  if (!navigator.geolocation) { setHint('This browser has no location support'); return; }
+  if (window.isSecureContext === false) { setHint('Location needs a secure page (https://)', 7000); return; }
+  setHint('Getting your location…', 15000);
+  navigator.geolocation.getCurrentPosition(p => {
+    snap(); setPoint(w, { lat: p.coords.latitude, lon: p.coords.longitude }); update(true);
+    setHint(`Placed at your location (±${Math.round(p.coords.accuracy)} m)`, 6000);
+  }, e => setHint(e.code === 1 ? 'Location blocked. Allow it for this page in your browser settings.' : 'Could not get a location fix.', 7000), { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 });
+}
+$('locL').onclick = () => useLocation('L'); $('locR').onclick = () => useLocation('R');
+
+// ---------- positions list
+function renderSel() { $('posSel').innerHTML = positions.map((st, i) => `<option value="${i}"${i === active ? ' selected' : ''}>${esc(st.name)}</option>`).join(''); }
+function activate(i, fit) { if (!positions[i] || i === active) return; active = i; setTool('move'); syncForm(); othersSig = ''; update(fit !== false && !!positions[i].L); }
+const nextName = () => { let n = positions.length + 1; while (positions.some(p => p.name === 'SBF ' + n)) n++; return 'SBF ' + n; };
+function newPos(copy) {
+  snap(); const b = cur(); let st;
+  if (copy) {
+    st = JSON.parse(JSON.stringify(b)); st.id = ++uid; st.name = (b.name + ' (copy)').slice(0, 40); st.trps.forEach(t => { t.id = ++uid; });
+    const sh = p => p && dest(p, 90, 60); st.L = sh(st.L); st.R = sh(st.R); st.trps.forEach(t => Object.assign(t, dest(t, 90, 60)));
+  } else st = blank(nextName(), b);
+  positions.push(st); active = positions.length - 1; setTool('move'); syncForm(); update(copy && !!st.L);
+  setHint(copy ? 'Copied and nudged 60 m east. Drag the ✥ handle to move it.' : 'New position added. Place its left end with the Left tool.', 6000);
+}
+function delPos() {
+  snap(); const nm = cur().name; positions.splice(active, 1);
+  if (!positions.length) positions.push(blank('SBF 1'));
+  active = Math.min(active, positions.length - 1); setTool('move'); syncForm(); othersSig = ''; update();
+  setHint(`Deleted "${nm}" (Undo brings it back)`, 6000);
+}
+$('posNew').onclick = () => newPos(false); $('posCopy').onclick = () => newPos(true); $('posDel').onclick = delPos;
+$('posSel').onchange = e => activate(+e.target.value);
+
+// ---------- TRPs
+function renderTrps() {
+  const st = cur(), o = originOf(st);
+  $('trpList').innerHTML = !o ? '<div class="sub" style="margin-top:8px">Place the position first, then add TRPs.</div>'
+    : !st.trps.length ? '<div class="sub" style="margin-top:8px">No TRPs yet. Add one above or tap the map.</div>'
+    : st.trps.map((t, i) => {
+      const c = trpCalc(st, t), a = Math.abs(c.off), r = rngText(c), g = mgrsOf(t), s = secText(c);
+      const big = (a < 0.5 ? 'On axis' : `${a.toFixed(0)}° ${c.off > 0 ? 'right' : 'left'}`) + ` · ${Math.round(c.dist).toLocaleString()} m`;
+      const cls = x => /OUTSIDE|BEYOND|behind/.test(x) ? 'flag' : 'okc';
+      return `<div class="trpitem"><div class="top"><input type="text" data-name="${t.id}" value="${esc(t.name)}" maxlength="30" aria-label="TRP name"><button data-go="${t.id}" title="Zoom to this TRP">⌖</button><button data-del="${t.id}" title="Delete this TRP">✕</button></div>
+        <div class="big">${i + 1}. ${big}</div>
+        <div class="det">Azimuth ${d3(c.brg)}° (${Math.round(nz(c.brg) * MIL)} mils)${a >= 0.5 ? ` · ${Math.round(a * MIL)} mils ${c.off > 0 ? 'right' : 'left'} of axis` : ''}${g ? '<br>' + g : ''}<br><span class="${c.lim ? cls(s) : ''}">${s}</span>${r ? `<br><span class="${cls(r)}">${r}</span>` : ''}${a > 90 ? '<br><span class="flag">Behind the firing line</span>' : ''}</div></div>`;
+    }).join('');
+}
+function addTrp(ll) {
+  const st = cur(); if (!originOf(st)) { setHint('Place the position first'); return; }
+  snap(); let n = st.trps.length + 1; while (st.trps.some(t => t.name === 'TRP ' + n)) n++;
+  st.trps.push({ id: ++uid, name: 'TRP ' + n, lat: ll.lat, lon: ll.lon }); update(); setHint(trpLine(st, st.trps[st.trps.length - 1]), 9000);
+}
+function delTrp(id) { snap(); const st = cur(); st.trps = st.trps.filter(t => t.id !== id); update(); }
+$('tMap').onclick = () => { if (!cur().L) { setHint('Place the position first (Left tool)'); return; } setTool('trp'); };
+$('tAddC').onclick = () => {
+  const ll = MGRS.parseCoord($('tC').value.trim());
+  if (!ll) { $('tC').classList.add('bad'); setHint('Not recognised. Use "lat, lon" or MGRS like 17S QV 12345 67890', 6000); return; }
+  $('tC').classList.remove('bad'); $('tC').value = ''; addTrp(ll);
+};
+$('tAddP').onclick = () => {
+  const o = originOf(cur()); if (!o) { setHint('Place the position first'); return; }
+  const az = numv('tAz'), d = numv('tDist');
+  if (az == null || d == null || d <= 0) { setHint('Enter an azimuth and a distance in meters', 5000); return; }
+  addTrp(dest(o, az, d)); $('tAz').value = ''; $('tDist').value = '';
+};
+$('trpList').addEventListener('input', e => { const n = e.target.closest('[data-name]'); if (!n) return; const t = cur().trps.find(x => x.id === +n.dataset.name); if (t) { t.name = n.value || 'TRP'; scheduleSave(); drawSoon(); } });
+$('trpList').addEventListener('click', e => {
+  const d = e.target.closest('[data-del]'), g = e.target.closest('[data-go]');
+  if (d) delTrp(+d.dataset.del); else if (g && map) { const t = cur().trps.find(x => x.id === +g.dataset.go); if (t) map.setView([t.lat, t.lon], Math.max(map.getZoom(), 16)); }
+});
+$('tClear').onclick = () => { const st = cur(); if (!st.trps.length) return; snap(); st.trps = []; update(); setHint('TRPs cleared (Undo brings them back)', 5000); };
+function firePlanText(st) {
+  const o = originOf(st), az = parseFloat(st.az) || 0, lL = parseFloat(st.limL) || 0, lR = parseFloat(st.limR) || 0, w = WPN[+st.wpn] ? WPN[+st.wpn].n : 'weapon';
+  return [`FIRE PLAN - ${st.name}`, `Firing position: ${mgrsOf(o) || fmtLL(o)}`,
+    `Direction of fire: ${d3(az)}° (${Math.round(nz(az) * MIL)} mils)` + (lL + lR > 0.05 ? `; left limit ${d3(az - lL)}°, right limit ${d3(az + lR)}°` : ''),
+    ...(parseFloat(st.max) > 0 ? [`Max effective range (${w}): ${parseFloat(st.max)} m`] : []),
+    ...st.trps.map((t, i) => `${i + 1}. ${trpLine(st, t)}`), 'Angles are true azimuth, measured from the direction of fire. PLANNING AID - verify before use.'].join('\n');
+}
+$('tCopy').onclick = () => {
+  const st = cur(); if (!originOf(st)) { setHint('Place the position first'); return; }
+  const txt = firePlanText(st), done = () => setHint('Fire plan copied', 3500);
+  const fb = () => { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (er) { setHint('Could not copy', 4000); } ta.remove(); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, fb); else fb();
+};
+
+// ---------- map drawing
+let mk = {}, trpMk = {}, aimLine = null, limLines = null, sectorLayer = null, trpLines = null, linePoly = null, othersLayer = null, othersSig = '', drawQ = 0;
+const moving = m => m && m.dragging && m.dragging._draggable && m.dragging._draggable._moving;
+const pinIcon = (txt, cls) => { const z = cls === 'mid' ? Math.round(PIN * .7) : PIN; return L.divIcon({ className: '', html: `<div class="pin ${cls || ''}">${txt}</div>`, iconSize: [z, z], iconAnchor: [z / 2, z / 2] }); };
+const aimDist = () => { const a = originOf(cur()); return Math.max(40, 156543.03 * Math.cos(a.lat * Math.PI / 180) / Math.pow(2, map.getZoom()) * 120); };
+const sectorRadius = st => (parseFloat(st.max) > 0 ? parseFloat(st.max) : aimDist() * 1.6);
+const ll2 = p => [p.lat, p.lon];
+function sectorPoly(o, az, lL, lR, r) {                              // fan out to radius r between the left and right limit bearings
+  const a0 = az - lL, span = lL + lR, pts = [ll2(o)];
+  const n = Math.max(2, Math.ceil(span / 2));
+  for (let i = 0; i <= n; i++) pts.push(ll2(dest(o, a0 + span * i / n, r)));
+  return pts;
+}
+const limsOf = st => [Math.max(0, parseFloat(st.limL) || 0), Math.max(0, parseFloat(st.limR) || 0)];
+function drawSoon() { if (!drawQ) drawQ = requestAnimationFrame(() => { drawQ = 0; draw(); }); }
+function drawOthers() {
+  const items = positions.map((st, i) => (i === active || !st.L || st.visible === false) ? null : st);
+  const sig = JSON.stringify(items.map(st => st ? { ...st, id: 0 } : 0)) + map.getZoom();
+  if (sig === othersSig && othersLayer) return;
+  othersSig = sig; if (othersLayer) othersLayer.remove(); othersLayer = L.layerGroup().addTo(map);
+  items.forEach((st, i) => {
+    if (!st) return;
+    const o = originOf(st), [lL, lR] = limsOf(st), az = parseFloat(st.az) || 0, r = parseFloat(st.max) > 0 ? parseFloat(st.max) : 600;
+    if (lL + lR > 0.05) L.polygon(sectorPoly(o, az, lL, lR, r), { color: '#7ba7d9', weight: 1, fillOpacity: .06, interactive: false }).addTo(othersLayer);
+    else L.polyline([ll2(o), ll2(dest(o, az, r))], { color: '#7ba7d9', weight: 1, dashArray: '4 4', interactive: false }).addTo(othersLayer);
+    st.trps.forEach(t => L.circleMarker(ll2(t), { radius: 5, color: '#fff', weight: 1, fillColor: '#1f6feb', fillOpacity: 1, interactive: false }).addTo(othersLayer));
+    L.marker(ll2(st.L), { icon: L.divIcon({ className: '', html: `<div class="plbl">${esc(st.name)}</div>`, iconSize: [1, 1], iconAnchor: [0, 0] }), zIndexOffset: 100 }).on('click', () => activate(positions.indexOf(st))).addTo(othersLayer);
+  });
+}
+function draw() {
+  if (!map) return;
+  drawOthers();
+  const st = cur(), o = originOf(st), single = isSingle(st);
+  const want = { L: !!st.L, R: !!st.R && !single, M: !!st.L && !!st.R && !single };
+  ['L', 'R', 'M'].forEach(k => {
+    if (!want[k]) { if (mk[k]) { mk[k].remove(); mk[k] = null; } return; }
+    const ll = k === 'M' ? o : st[k];
+    if (!mk[k]) {
+      mk[k] = L.marker(ll2(ll), { draggable: true, icon: pinIcon(k === 'M' ? '✥' : k, k === 'M' ? 'mid' : ''), zIndexOffset: k === 'M' ? 400 : 500 }).addTo(map);
+      mk[k].on('dragstart', snap);
+      mk[k].on('click', () => { if (tool === 'del' && k !== 'M') clearEnd(k); });
+      mk[k].on('drag', e => onDrag(k, e.target.getLatLng()));
+      mk[k].on('dragend', () => update());
+      if (k !== 'M') mk[k].on('contextmenu', () => clearEnd(k));
+    } else if (!moving(mk[k])) mk[k].setLatLng(ll2(ll));
+  });
+  if (linePoly) { linePoly.remove(); linePoly = null; }
+  if (want.M) linePoly = L.polyline([ll2(st.L), ll2(st.R)], { color: '#fff', weight: 3, dashArray: '6 6', interactive: false }).addTo(map);
+  drawAim(st, o); drawSector(st, o); drawTrps(st, o);
+}
+function clearEnd(k) { snap(); const st = cur(); if (k === 'L' && st.R) { st.L = st.R; st.R = null; } else st[k] = null; if (!st.L) setTool('move'); syncForm(); update(); }
+function onDrag(k, ll) {
+  const st = cur();
+  if (k === 'M') {                                                    // move the whole line
+    const m = originOf(st), dLat = ll.lat - m.lat, dLon = ll.lng - m.lon;
+    ['L', 'R'].forEach(w => { st[w] = { lat: st[w].lat + dLat, lon: st[w].lon + dLon }; if (mk[w]) mk[w].setLatLng(ll2(st[w])); });
+  } else st[k] = { lat: ll.lat, lon: ll.lng };
+  ['L', 'R'].forEach(w => { if (st[w]) { $('c' + w).value = fmtLL(st[w]); readout(w); } });
+  lineInfo(); renderTrps(); drawSoon();
+}
+const aimIcon = az => { const z = Math.round(PIN * 1.15); return L.divIcon({ className: '', html: `<div class="pin aim" style="transform:rotate(${az}deg)">&#9650;</div>`, iconSize: [z, z], iconAnchor: [z / 2, z / 2] }); };
+const limIcon = side => L.divIcon({ className: '', html: `<div class="pin lim" title="${side === 'L' ? 'Left' : 'Right'} limit of fire - drag to aim">${side === 'L' ? '&#9664;' : '&#9654;'}</div>`, iconSize: [Math.round(PIN * .92), Math.round(PIN * .92)], iconAnchor: [Math.round(PIN * .46), Math.round(PIN * .46)] });
+function drawAim(st, o) {
+  if (!o) { ['A', 'limL', 'limR'].forEach(k => { if (mk[k]) { mk[k].remove(); mk[k] = null; } }); if (aimLine) { aimLine.remove(); aimLine = null; } return; }
+  const az = parseFloat(st.az) || 0, hp = dest(o, az, aimDist());
+  if (!mk.A) {
+    mk.A = L.marker(ll2(hp), { draggable: true, icon: aimIcon(az), zIndexOffset: 600 }).addTo(map);
+    mk.A.on('dragstart', snap);
+    mk.A.on('drag', e => { const ll = e.target.getLatLng(), b = inv(originOf(cur()), { lat: ll.lat, lon: ll.lng }).bearing; cur().az = b.toFixed(1); $('az').value = cur().az; const el = mk.A.getElement(); if (el && el.firstChild) el.firstChild.style.transform = `rotate(${b}deg)`; renderTrps(); drawSoon(); });
+    mk.A.on('dragend', () => update());
+  } else if (!moving(mk.A)) { mk.A.setLatLng(ll2(hp)); mk.A.setIcon(aimIcon(az)); }
+  if (aimLine) aimLine.remove();
+  aimLine = L.polyline([ll2(o), ll2(hp)], { color: '#e0302d', weight: 2, dashArray: '4 4', interactive: false }).addTo(map);
+  [['L', st.az - limsOf(st)[0], 1.3], ['R', +st.az + limsOf(st)[1], 1.6]].forEach(([side, ab, f]) => {
+    const k = 'lim' + side, hpl = dest(o, ab, aimDist() * f);
+    if (!mk[k]) {
+      mk[k] = L.marker(ll2(hpl), { draggable: true, icon: limIcon(side), zIndexOffset: 550 }).addTo(map);
+      mk[k].on('dragstart', snap);
+      mk[k].on('click', () => { if (tool === 'del') { snap(); cur()['lim' + side] = '0'; syncForm(); update(); } });
+      mk[k].on('drag', e => { const ll = e.target.getLatLng(); setLimit(side, inv(originOf(cur()), { lat: ll.lat, lon: ll.lng }).bearing); renderTrps(); drawSoon(); });
+      mk[k].on('dragend', () => update());
+    } else if (!moving(mk[k])) mk[k].setLatLng(ll2(hpl));
+  });
+}
+// Set one limit to an absolute bearing; the other keeps its absolute bearing. Stored as azimuth plus left/right limits.
+function setLimit(side, b) {
+  const st = cur(), az = parseFloat(st.az) || 0, [lL, lR] = limsOf(st);
+  let aL = az - lL, aR = az + lR;
+  if (side === 'L') aL = b; else aR = b;
+  let span = nz(aR - aL);
+  if (span > 180) { aL = aR = b; span = 0; }                          // crossed: collapse to a single line
+  if (span > 358) span = 358;
+  st.az = nz(aL + span / 2).toFixed(1); st.limL = st.limR = (span / 2).toFixed(1);
+  syncForm();
+}
+function drawSector(st, o) {
+  if (sectorLayer) { sectorLayer.remove(); sectorLayer = null; }
+  if (!o) return;
+  sectorLayer = L.layerGroup().addTo(map);
+  const [lL, lR] = limsOf(st), az = parseFloat(st.az) || 0, r = sectorRadius(st), maxSet = parseFloat(st.max) > 0;
+  if (lL + lR > 0.05) {
+    L.polygon(sectorPoly(o, az, lL, lR, r), { color: '#e0302d', weight: 2, fillColor: '#e0302d', fillOpacity: .12, interactive: false }).addTo(sectorLayer);
+    [[az - lL], [az + lR]].forEach(([b]) => L.marker(ll2(dest(o, b, r * 1.06)), { interactive: false, keyboard: false, icon: L.divIcon({ className: '', html: `<div class="edge">${d3(b)}&deg;</div>`, iconSize: [1, 1] }) }).addTo(sectorLayer));
+  } else if (maxSet) L.circle(ll2(o), { radius: r, color: '#e0302d', weight: 1, fillOpacity: .04, dashArray: '5 6', interactive: false }).addTo(sectorLayer);
+}
+function drawTrps(st, o) {
+  const list = o ? st.trps : [], ids = new Set(list.map(t => t.id));
+  Object.keys(trpMk).forEach(k => { if (!ids.has(+k)) { trpMk[k].remove(); delete trpMk[k]; } });
+  if (trpLines) { trpLines.remove(); trpLines = null; }
+  if (!list.length) return;
+  trpLines = L.layerGroup().addTo(map);
+  list.forEach((t, i) => {
+    const c = trpCalc(st, t), id = t.id, find = () => cur().trps.find(x => x.id === id), a = Math.abs(c.off), z = Math.round(PIN * .95);
+    L.polyline([ll2(o), ll2(t)], { color: c.lim && !c.inside ? '#e0302d' : '#1f6feb', weight: 2, dashArray: '3 5', interactive: false }).addTo(trpLines);
+    const icon = L.divIcon({ className: '', iconSize: [z, z], iconAnchor: [z / 2, z / 2], html: `<div class="pin trp">${i + 1}</div><div class="lbl">${esc(t.name)} · ${Math.round(c.dist)} m · ${a < 0.5 ? 'axis' : a.toFixed(0) + '°' + (c.off > 0 ? 'R' : 'L')}</div>` });
+    let m = trpMk[id];
+    if (!m) {
+      m = trpMk[id] = L.marker(ll2(t), { draggable: true, icon, zIndexOffset: 450 }).addTo(map);
+      m.on('dragstart', snap);
+      m.on('drag', e => { const q = find(), ll = e.target.getLatLng(); if (q) { q.lat = ll.lat; q.lon = ll.lng; renderTrps(); drawSoon(); } });
+      m.on('dragend', () => update());
+      m.on('click', () => { if (tool === 'del') delTrp(id); });
+      m.on('contextmenu', () => delTrp(id));
+    } else if (!moving(m)) { m.setLatLng(ll2(t)); m.setIcon(icon); }
+  });
+}
+function lineInfo() {
+  const st = cur(), el = $('lineinfo');
+  if (!st.L || !st.R || isSingle(st)) { el.textContent = ''; return; }
+  const v = inv(st.L, st.R); el.textContent = `Line: ${v.dist.toFixed(0)} m long, ${v.bearing.toFixed(1)}° from L to R`;
+}
+function fit() {
+  const st = cur(), o = originOf(st); if (!o || !map) { setHint('Place the position first'); return; }
+  const pts = [o, ...(st.L ? [st.L] : []), ...(st.R ? [st.R] : []), ...st.trps];
+  map.fitBounds(L.latLngBounds(pts.map(ll2)).extend(L.latLng(o.lat, o.lon).toBounds(sectorRadius(st) * 1.1)), { maxZoom: 17, padding: [30, 30] });
+}
+function update(doFit) {
+  scheduleSave(); renderSel(); readout('L'); readout('R'); lineInfo(); renderTrps(); draw();
+  if (doFit === true) fit();
+}
+
+// ---------- map tools
+function mapClick(ll) {
+  const st = cur(), p = { lat: ll.lat, lon: ll.lng };
+  if (tool === 'L' || tool === 'R') {
+    snap(); setPoint(tool, p); const was = tool;
+    setTool(was === 'L' && !st.R && !st.single ? 'R' : 'move'); update(); return;
+  }
+  if (!originOf(st)) { setHint('Place the position first (Left tool)'); return; }
+  if (tool === 'trp') { addTrp(p); return; }
+  if (tool === 'dir') { snap(); st.az = inv(originOf(st), p).bearing.toFixed(1); $('az').value = st.az; setTool('move'); update(); return; }
+  if (tool === 'limL' || tool === 'limR') { snap(); setLimit(tool === 'limL' ? 'L' : 'R', inv(originOf(st), p).bearing); setTool('move'); update(); }
+}
+document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool === tool && tool !== 'move' ? 'move' : b.dataset.tool));
+$('tUndo').onclick = undo; $('tFit').onclick = fit;
+document.addEventListener('keydown', e => {
+  const ae = document.activeElement, typing = /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && ae.type !== 'checkbox';
+  if (e.key === 'Escape') setTool('move');
+  else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); undo(); }
+});
+
+// live GPS dot
+let gpsWatch = null, gpsDot = null, gpsRing = null, gpsFirst = true;
+function stopGps() { if (gpsWatch != null) navigator.geolocation.clearWatch(gpsWatch); gpsWatch = null; [gpsDot, gpsRing].forEach(l => l && l.remove()); gpsDot = gpsRing = null; $('tGps').classList.remove('active'); }
+$('tGps').onclick = () => {
+  if (gpsWatch != null) { stopGps(); setHint('GPS off', 2500); return; }
+  if (!navigator.geolocation || !map) { setHint('This browser has no location support'); return; }
+  if (window.isSecureContext === false) { setHint('Location needs a secure page (https://)', 7000); return; }
+  gpsFirst = true; $('tGps').classList.add('active'); setHint('Looking for GPS…', 15000);
+  gpsWatch = navigator.geolocation.watchPosition(p => {
+    const ll = [p.coords.latitude, p.coords.longitude], acc = p.coords.accuracy || 0;
+    if (!gpsDot) { gpsRing = L.circle(ll, { radius: acc, color: '#1f6feb', weight: 1, fillOpacity: .12, interactive: false }).addTo(map); gpsDot = L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2, fillColor: '#1f6feb', fillOpacity: 1, interactive: false }).addTo(map); }
+    else { gpsRing.setLatLng(ll).setRadius(acc); gpsDot.setLatLng(ll); }
+    if (gpsFirst) { gpsFirst = false; map.setView(ll, Math.max(map.getZoom(), 16)); setHint(`GPS fix ±${Math.round(acc)} m. Use "my location" on the Position tab to set an end.`, 7000); }
+  }, e => { stopGps(); setHint(e.code === 1 ? 'Location blocked. Allow it for this page in your browser settings.' : 'GPS unavailable.', 8000); }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 30000 });
+};
+
+// ---------- KML export
+const kx = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const kc = p => `${p.lon.toFixed(7)},${p.lat.toFixed(7)},0`;
+function kmlFolder(st) {
+  const o = originOf(st); if (!o) return '';
+  const az = parseFloat(st.az) || 0, [lL, lR] = limsOf(st), max = parseFloat(st.max) > 0 ? parseFloat(st.max) : 0;
+  let k = `<Folder><name>${kx(st.name)}</name><description>${kx(firePlanText(st))}</description>\n`;
+  const pm = (name, desc, geom, style) => `<Placemark><name>${kx(name)}</name>${desc ? `<description>${kx(desc)}</description>` : ''}${style ? `<styleUrl>#${style}</styleUrl>` : ''}${geom}</Placemark>\n`;
+  k += pm(st.name + (isSingle(st) ? ' - position' : ' - left end'), '', `<Point><coordinates>${kc(st.L)}</coordinates></Point>`);
+  if (!isSingle(st)) { k += pm(st.name + ' - right end', '', `<Point><coordinates>${kc(st.R)}</coordinates></Point>`); k += pm(st.name + ' - firing line', '', `<LineString><coordinates>${kc(st.L)} ${kc(st.R)}</coordinates></LineString>`, 'line'); }
+  if (lL + lR > 0.05 && max) {
+    const ring = sectorPoly(o, az, lL, lR, max).map(p => kc({ lat: p[0], lon: p[1] })); ring.push(ring[0]);
+    k += pm(st.name + ' - sector of fire', `Azimuth ${d3(az - lL)} to ${d3(az + lR)} deg true, to ${max} m`, `<Polygon><outerBoundaryIs><LinearRing><coordinates>${ring.join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon>`, 'sector');
+  } else k += pm(st.name + ' - direction of fire', `Azimuth ${d3(az)} deg true`, `<LineString><coordinates>${kc(o)} ${kc(dest(o, az, max || 500))}</coordinates></LineString>`, 'dir');
+  st.trps.forEach(t => {
+    k += pm(st.name + ' - ' + t.name, trpLine(st, t), `<Point><coordinates>${kc(t)}</coordinates></Point>`);
+    k += pm(st.name + ' - ' + t.name + ' line', '', `<LineString><coordinates>${kc(o)} ${kc(t)}</coordinates></LineString>`, 'line');
+  });
+  return k + '</Folder>\n';
+}
+function kmlDoc(list, name) {
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n<name>${kx(name)}</name>\n<description>PLANNING AID. Angles are true azimuth from the direction of fire.</description>\n` +
+    '<Style id="line"><LineStyle><color>ffffffff</color><width>2</width></LineStyle></Style>\n<Style id="dir"><LineStyle><color>ff2d30e0</color><width>3</width></LineStyle></Style>\n' +
+    '<Style id="sector"><LineStyle><color>ff2d30e0</color><width>2</width></LineStyle><PolyStyle><color>402d30e0</color></PolyStyle></Style>\n' + list.map(kmlFolder).join('') + '</Document></kml>\n';
+}
+function saveFile(text, fname, type) { const el = document.createElement('a'); el.href = URL.createObjectURL(new Blob([text], { type })); el.download = fname; el.click(); }
+$('kml').onclick = () => {
+  const list = positions.filter(p => p.visible !== false && p.L);
+  if (!list.length) { setHint('Nothing to export yet. Place a position first.', 6000); return; }
+  const text = kmlDoc(list, list.length === 1 ? 'Fire plan ' + list[0].name : `Fire plan - ${list.length} positions`);
+  const fname = list.length === 1 ? `FirePlan_${list[0].name.replace(/[^\w.-]+/g, '_')}.kml` : `FirePlan_${list.length}_positions.kml`;
+  const type = 'application/vnd.google-earth.kml+xml', file = TOUCH && window.File ? new File([text], fname, { type }) : null;
+  if (file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: 'Fire plan' }).catch(e => { if (e && e.name !== 'AbortError') saveFile(text, fname, type); }); return; }
+  saveFile(text, fname, type); setHint('KML saved', 4000);
+};
+
+// ---------- save, open, autosave
+let saveT = 0;
+function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify({ v: 1, positions, active })); } catch (e) { /* private mode / storage full */ } }, 250); }
+$('pSave').onclick = () => { saveFile(JSON.stringify({ app: 'fire-planner', v: 1, positions, active }, null, 1), `FirePlan_project_${positions.length}_positions.json`, 'application/json'); setHint('Project saved. Open it on another device with "Open project".', 6000); };
+$('pOpen').onclick = () => $('pFile').click();
+$('pFile').onchange = e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  f.text().then(t => {
+    const o = JSON.parse(t); if (!o || !Array.isArray(o.positions) || !o.positions.length) throw new Error('no positions');
+    snap(); positions = o.positions.map(clean); active = Math.min(Math.max(0, +o.active || 0), positions.length - 1); syncForm(); othersSig = ''; update(true);
+    setHint(`Opened ${positions.length} position${positions.length > 1 ? 's' : ''} (Undo restores the previous project)`, 7000);
+  }).catch(() => setHint('That file is not a Fire Planner project.', 6000));
+};
+
+// ---------- map and boot
+function initMap() {
+  if (typeof L === 'undefined') return;
+  $('map').innerHTML = '';
+  map = L.map('map').setView([39.5, -98.35], 4);
+  const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri World Imagery' });
+  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' });
+  sat.addTo(map); L.control.layers({ Satellite: sat, Streets: osm, 'No map (offline)': L.layerGroup() }).addTo(map);
+  L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+  let lastNote = 0;
+  [sat, osm].forEach(t => t.on('tileerror', () => { if (Date.now() - lastNote > 60000) { lastNote = Date.now(); setHint('Map tiles are not loading (no signal?). Everything else still works. Pick "No map (offline)" in the layers menu.', 8000); } }));
+  map.on('zoomend', () => draw());
+  map.on('click', e => mapClick(e.latlng));
+  addEventListener('resize', () => map.invalidateSize());
+}
+function boot() {
+  try { applyTheme(localStorage.getItem(THEME_KEY) || 'auto'); } catch (e) { applyTheme('auto'); }
+  let saved = null; try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { /* ignore */ }
+  let restored = false;
+  if (saved && Array.isArray(saved.positions) && saved.positions.length) { positions = saved.positions.map(clean); active = Math.min(Math.max(0, +saved.active || 0), positions.length - 1); restored = true; }
+  else positions = [blank('SBF 1')];
+  syncForm(); initMap(); update(restored && !!cur().L);
+  setTimeout(() => { if (map) map.invalidateSize(); }, 250);
+  if (restored) setHint(`Restored ${positions.length} position${positions.length > 1 ? 's' : ''} from your last session`, 6000);
+  else setHint('Start with the Left tool, or type coordinates on the Position tab', 8000);
+}
+boot();
+</script>
+</body>
+</html>
