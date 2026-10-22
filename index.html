@@ -1039,6 +1039,18 @@ const WPN = [
 const wpnOf = v => (v === '' || v == null) ? null : (WPN[+v] || null);
 $('wpn').innerHTML = '<option value="">Custom / none</option>' + WPN.map((w, i) => `<option value="${i}">${w.n} (${w.pt}/${w.ar})</option>`).join('');
 
+// range bands: where a weapon's grazing, point and area fire end, colour coded on the fan
+const BAND = { gz: { name: 'Grazing', color: '#2ea043' }, pt: { name: 'Point', color: '#f5c400' }, ar: { name: 'Area', color: '#ff7a1a' } };
+const rm = d => Math.round(d).toLocaleString() + ' m';
+function bandsOf(st) {                                              // ascending by distance; empty unless a weapon preset is chosen. Equal distances share one band.
+  const w = wpnOf(st.wpn); if (!w) return [];
+  const out = [];
+  ['gz', 'pt', 'ar'].filter(k => w[k] > 0).map(k => ({ k, d: w[k] })).sort((a, b) => a.d - b.d).forEach(b => {
+    const last = out[out.length - 1];
+    if (last && last.d === b.d) last.names.push(BAND[b.k].name); else out.push({ d: b.d, names: [BAND[b.k].name], color: BAND[b.k].color });
+  });
+  return out;
+}
 // ---------- state: a list of positions; the form edits positions[active]
 const KEY = 'firePlanner.v1', THEME_KEY = 'firePlanner.theme', VIEW_KEY = 'firePlanner.clearView';
 let clearView = false;                                              // true hides the aim and limit arrows (the fan and lines stay)
@@ -1085,7 +1097,7 @@ function trpCalc(st, t) {
   const o = originOf(st); if (!o) return null;
   const v = inv(o, t), az = parseFloat(st.az) || 0;
   const lL = Math.max(0, parseFloat(st.limL) || 0), lR = Math.max(0, parseFloat(st.limR) || 0), off = off180(v.bearing - az), max = parseFloat(st.max);
-  return { dist: v.dist, brg: v.bearing, off, lim: lL + lR > 0.05, inside: off >= -lL - 0.05 && off <= lR + 0.05, toL: off + lL, toR: lR - off, max: max > 0 ? max : null };
+  return { dist: v.dist, brg: v.bearing, off, lim: lL + lR > 0.05, inside: off >= -lL - 0.05 && off <= lR + 0.05, toL: off + lL, toR: lR - off, max: max > 0 ? max : null, bands: bandsOf(st) };
 }
 function offText(c) {
   const a = Math.abs(c.off);
@@ -1097,7 +1109,17 @@ function secText(c) {
   if (c.inside) return `inside the sector, ${Math.max(0, c.toL).toFixed(0)}° from the left limit and ${Math.max(0, c.toR).toFixed(0)}° from the right limit`;
   return c.off < 0 ? `OUTSIDE the sector, ${(-c.toL).toFixed(0)}° past the left limit` : `OUTSIDE the sector, ${(-c.toR).toFixed(0)}° past the right limit`;
 }
-const rngText = c => !c.max ? '' : c.dist <= c.max ? `within max effective range (${Math.round(c.max - c.dist)} m to spare)` : `BEYOND max effective range by ${Math.round(c.dist - c.max)} m`;
+const rngText = c => {
+  if (c.bands && c.bands.length) {                                    // a weapon preset is chosen: say which kinds of fire reach the TRP
+    const i = c.bands.findIndex(b => c.dist <= b.d);
+    if (i < 0) return `BEYOND ${c.bands[c.bands.length - 1].names.join('/').toLowerCase()} range by ${Math.round(c.dist - c.bands[c.bands.length - 1].d)} m`;
+    const types = [...new Set(c.bands.slice(i).flatMap(b => b.names.map(n => n.toLowerCase())))];
+    const list = types.length > 1 ? types.slice(0, -1).join(', ') + ' and ' + types[types.length - 1] : types[0];
+    const lead = types.length === 1 ? `Only ${list} fire reaches it` : `${list.charAt(0).toUpperCase() + list.slice(1)} fire reach it`;
+    return `${lead} (${Math.round(c.bands[i].d - c.dist)} m before ${c.bands[i].names.join('/').toLowerCase()} fire ends)`;
+  }
+  return !c.max ? '' : c.dist <= c.max ? `within max effective range (${Math.round(c.max - c.dist)} m to spare)` : `BEYOND max effective range by ${Math.round(c.dist - c.max)} m`;
+};
 function trpLine(st, t) {
   const c = trpCalc(st, t), g = mgrsOf(t), r = rngText(c);
   return `${t.name}: ${Math.round(c.dist).toLocaleString()} m, azimuth ${d3(c.brg)}°, ${offText(c)}; ${secText(c)}${r ? '; ' + r : ''}${g ? '. Grid ' + g : ''}`;
@@ -1166,7 +1188,9 @@ $('showOvl').onchange = () => drawSoon();
 function resetHandles() { snap(); const st = cur(); st.hA = st.hL = st.hR = null; update(); setHint('Arrows reset', 3000); }
 $('resetHandles').onclick = resetHandles;
 function wpnInfo() {
-  const w = wpnOf(cur().wpn); $('wpnInfo').textContent = w ? `${w.n}: point ${w.pt} m, area ${w.ar} m${w.gz ? `, grazing fire to ${w.gz} m` : ''}${w.tv ? `, traverse ${w.tv}\u00b0 total` : ''}. Max effective range uses the area figure.` : '';
+  const w = wpnOf(cur().wpn); if (!w) { $('wpnInfo').textContent = ''; return; }
+  const chip = (c, t) => `<span style="display:inline-block;width:.8em;height:.8em;border-radius:50%;background:${c};margin-right:4px;vertical-align:-1px"></span>${t}`;
+  $('wpnInfo').innerHTML = `<b>${esc(w.n)}</b><br>` + [w.gz ? chip(BAND.gz.color, `Grazing to ${rm(w.gz)}`) : '', chip(BAND.pt.color, `Point to ${rm(w.pt)}`), chip(BAND.ar.color, `Area to ${rm(w.ar)}`)].filter(Boolean).join(' &nbsp; ') + (w.tv ? `<br>Traverse ${w.tv}\u00b0 total` : '') + '<br>Max effective range uses the area figure.';
 }
 $('wpn').onchange = e => {
   const st = cur(); snap(); st.wpn = e.target.value;
@@ -1264,6 +1288,7 @@ function firePlanText(st) {
   return [`FIRE PLAN - ${st.name}`, `Position: ${mgrsOf(o) || fmtLL(o)}`,
     `Direction of fire: ${d3(az)}° (${Math.round(nz(az) * MIL)} mils)` + (lL + lR > 0.05 ? `; left limit ${d3(az - lL)}°, right limit ${d3(az + lR)}°` : ''),
     ...(parseFloat(st.max) > 0 ? [`Max effective range (${w}): ${parseFloat(st.max)} m`] : []),
+    ...(bandsOf(st).length ? [`Fire ends at: ${bandsOf(st).map(b => `${b.names.join('/').toLowerCase()} ${rm(b.d)}`).join(', ')}`] : []),
     ...assaultPlanLines(st),
     ...trps.map((t, i) => `${i + 1}. ${trpLine(st, t)}`), 'Angles are true azimuth, measured from the direction of fire. PLANNING AID - verify before use.'].join('\n');
 }
@@ -1364,15 +1389,30 @@ function setLimit(side, b) {
   st.az = nz(aL + span / 2).toFixed(1); st.limL = st.limR = (span / 2).toFixed(1);
   syncForm();
 }
+function arcPts(o, a0, span, r) { const n = Math.max(2, Math.ceil(span / 2)), pts = []; for (let i = 0; i <= n; i++) pts.push(ll2(dest(o, a0 + span * i / n, r))); return pts; }
+function bandPoly(o, a0, span, r0, r1) {                            // ring segment between r0 and r1 over a bearing span (a wedge when r0 is 0)
+  const outer = arcPts(o, a0, span, r1);
+  return r0 > 0 ? outer.concat(arcPts(o, a0, span, r0).reverse()) : [ll2(o), ...outer];
+}
 function drawSector(st, o) {
   if (sectorLayer) { sectorLayer.remove(); sectorLayer = null; }
   if (!o) return;
   sectorLayer = L.layerGroup().addTo(map);
-  const [lL, lR] = limsOf(st), az = parseFloat(st.az) || 0, r = sectorRadius(st), maxSet = parseFloat(st.max) > 0;
-  if (lL + lR > 0.05) {
-    L.polygon(sectorPoly(o, az, lL, lR, r), { color: '#e0302d', weight: 2, fillColor: '#e0302d', fillOpacity: .12, interactive: false }).addTo(sectorLayer);
+  const [lL, lR] = limsOf(st), az = parseFloat(st.az) || 0, maxSet = parseFloat(st.max) > 0, bands = bandsOf(st), lim = lL + lR > 0.05;
+  const r = bands.length ? bands[bands.length - 1].d : sectorRadius(st);
+  if (lim) {
+    L.polygon(sectorPoly(o, az, lL, lR, r), { color: '#e0302d', weight: 2, fillColor: '#e0302d', fillOpacity: bands.length ? 0 : .12, interactive: false }).addTo(sectorLayer);
     [[az - lL], [az + lR]].forEach(([b]) => L.marker(ll2(dest(o, b, r * 1.06)), { interactive: false, keyboard: false, icon: L.divIcon({ className: '', html: `<div class="edge">${d3(b)}&deg;</div>`, iconSize: [1, 1] }) }).addTo(sectorLayer));
-  } else if (maxSet) L.circle(ll2(o), { radius: r, color: '#e0302d', weight: 1, fillOpacity: .04, dashArray: '5 6', interactive: false }).addTo(sectorLayer);
+  } else if (maxSet && !bands.length) L.circle(ll2(o), { radius: r, color: '#e0302d', weight: 1, fillOpacity: .04, dashArray: '5 6', interactive: false }).addTo(sectorLayer);
+  let prev = 0;
+  bands.forEach(b => {                                              // colour the zone that ends at each range, and mark where it ends
+    if (lim) {
+      L.polygon(bandPoly(o, az - lL, lL + lR, prev, b.d), { stroke: false, fillColor: b.color, fillOpacity: .3, interactive: false }).addTo(sectorLayer);
+      L.polyline(arcPts(o, az - lL, lL + lR, b.d), { color: b.color, weight: 3, opacity: .95, interactive: false }).addTo(sectorLayer);
+    } else L.polyline([ll2(dest(o, az, prev)), ll2(dest(o, az, b.d))], { color: b.color, weight: 7, opacity: .9, interactive: false }).addTo(sectorLayer);
+    L.marker(ll2(dest(o, az, b.d)), { interactive: false, keyboard: false, icon: L.divIcon({ className: '', html: `<div class="edge" style="border:2px solid ${b.color}">${b.names.join(' + ')} ${rm(b.d)}</div>`, iconSize: [1, 1] }) }).addTo(sectorLayer);
+    prev = b.d;
+  });
 }
 function drawTrps() {
   const st = cur(), o = originOf(st), ids = new Set(trps.map(t => t.id));
@@ -1595,6 +1635,12 @@ function kmlFolder(st) {
   if (lL + lR > 0.05 && max) {
     const ring = sectorPoly(o, az, lL, lR, max).map(p => kc({ lat: p[0], lon: p[1] })); ring.push(ring[0]);
     k += pm(st.name + ' - sector of fire', `Azimuth ${d3(az - lL)} to ${d3(az + lR)} deg true, to ${max} m`, `<Polygon><outerBoundaryIs><LinearRing><coordinates>${ring.join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon>`, 'sector');
+    let prevD = 0;
+    bandsOf(st).forEach((b, i) => {
+      const ring = bandPoly(o, az - lL, lL + lR, prevD, b.d).map(q => kc({ lat: q[0], lon: q[1] })); ring.push(ring[0]);
+      k += pm(`${st.name} - ${b.names.join(' + ').toLowerCase()} zone (${rm(prevD)}-${rm(b.d)})`, '', `<Polygon><outerBoundaryIs><LinearRing><coordinates>${ring.join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon>`, 'band' + b.names[0].slice(0, 2).toLowerCase());
+      prevD = b.d;
+    });
   } else k += pm(st.name + ' - direction of fire', `Azimuth ${d3(az)} deg true`, `<LineString><coordinates>${kc(o)} ${kc(dest(o, az, max || 500))}</coordinates></LineString>`, 'dir');
   trps.forEach(t => k += pm(st.name + ' to ' + t.name, trpLine(st, t), `<LineString><coordinates>${kc(o)} ${kc(t)}</coordinates></LineString>`, 'line'));
   return k + '</Folder>\n';
@@ -1602,7 +1648,7 @@ function kmlFolder(st) {
 function kmlDoc(list, name) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n<name>${kx(name)}</name>\n<description>PLANNING AID. Angles are true azimuth from the direction of fire.</description>\n` +
     '<Style id="line"><LineStyle><color>ffffffff</color><width>2</width></LineStyle></Style>\n<Style id="dir"><LineStyle><color>ff2d30e0</color><width>3</width></LineStyle></Style>\n' +
-    '<Style id="assault"><LineStyle><color>ff43a02e</color><width>5</width></LineStyle></Style>\n<Style id="sector"><LineStyle><color>ff2d30e0</color><width>2</width></LineStyle><PolyStyle><color>402d30e0</color></PolyStyle></Style>\n' +
+    '<Style id="assault"><LineStyle><color>ff43a02e</color><width>5</width></LineStyle></Style>\n<Style id="bandgr"><LineStyle><color>ff43a02e</color><width>1</width></LineStyle><PolyStyle><color>6643a02e</color></PolyStyle></Style>\n<Style id="bandpo"><LineStyle><color>ff00c4f5</color><width>1</width></LineStyle><PolyStyle><color>6600c4f5</color></PolyStyle></Style>\n<Style id="bandar"><LineStyle><color>ff1a7aff</color><width>1</width></LineStyle><PolyStyle><color>661a7aff</color></PolyStyle></Style>\n<Style id="sector"><LineStyle><color>ff2d30e0</color><width>2</width></LineStyle><PolyStyle><color>402d30e0</color></PolyStyle></Style>\n' +
     (doneLines().length ? `<Folder><name>Assault lines</name>${doneLines().map(l => `<Placemark><name>${kx(l.name)}</name><description>${kx('Keep fire at least ' + marginDeg() + ' deg off the line')}</description><styleUrl>#assault</styleUrl><LineString><coordinates>${kc(l.A)} ${kc(l.B)}</coordinates></LineString></Placemark>`).join('')}</Folder>\n` : '') +
     (trps.length ? `<Folder><name>TRPs</name>\n${trps.map(t => `<Placemark><name>${kx(t.name)}</name><description>${kx(mgrsOf(t) || fmtLL(t))}</description><Point><coordinates>${kc(t)}</coordinates></Point></Placemark>\n`).join('')}</Folder>\n` : '') + list.map(kmlFolder).join('') + '</Document></kml>\n';
 }
