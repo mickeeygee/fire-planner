@@ -22,6 +22,9 @@ Picking an M240B preset sets the sector limits from its traverse (tripod 15°, b
 
 Everything is stored in your own browser. Nothing is sent to any server (map pictures load from Esri World Imagery and OpenStreetMap, and the app works with the map turned off).
 
+## On a phone
+The map fills the screen and the controls sit in a bottom sheet. Drag the handle up for the full controls (Setup, TRPs, More) and down to a compact bar with big one-tap buttons: **Use my location** or **Place on map** to start, then **Add TRP**, **Aim**, **Undo**, **GPS** and **More**. Turned sideways, the controls become a panel on the right.
+
 ## Things to know
 - Angles are measured from the direction of fire at the middle of the position, in true degrees (no grid or magnetic correction). 6400 mils per circle.
 - Weapon ranges are typical published figures, not authoritative. Check them against the weapon manual and your unit SOP. The range box is editable.

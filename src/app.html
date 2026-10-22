@@ -31,12 +31,6 @@
   .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .row3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
   .row > button, .row3 > button { margin-top:8px; }
   .readout { font:12px ui-monospace,Menlo,monospace; color:var(--mute); margin-top:3px; min-height:16px; word-break:break-all; } .readout.err { color:var(--bad); }
-  .posbar { display:grid; grid-template-columns:1fr auto auto auto; gap:6px; margin:10px 0 6px; }
-  .posbar select { min-width:0; } .posbar button { padding:6px 12px; }
-  #tabs { display:flex; gap:3px; padding:3px; background:var(--panel2); border-radius:12px; margin:8px 0 4px; position:sticky; top:-14px; z-index:5; }
-  #tabs button { flex:1 1 0; min-width:0; margin:0; padding:7px 2px; background:transparent; border:0; border-radius:9px; color:var(--mute); font-weight:600; }
-  #tabs button.on { background:var(--accent); color:var(--accent-ink); }
-  section[data-sec] { display:none; } body[data-tab="pos"] [data-sec="pos"], body[data-tab="aim"] [data-sec="aim"], body[data-tab="trp"] [data-sec="trp"], body[data-tab="proj"] [data-sec="proj"] { display:block; }
   h2 { font-size:15px; margin:12px 0 2px; }
   .mapwrap { position:relative; height:100%; min-height:0; min-width:0; overflow:hidden; }
   #map { position:absolute; inset:0; }
@@ -61,43 +55,84 @@
   #tip { margin:18px 0 6px; text-align:center; } #tip[hidden] { display:none; } #tip a { color:var(--accent); font-size:13.5px; text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:7px 14px; display:inline-block; }
   .flag { color:var(--bad); font-weight:700; } .okc { color:var(--ok); font-weight:700; }
   .leaflet-control-layers, .leaflet-bar a { color:#111; }
-  @media (max-width:760px), (max-height:520px) {
-    .wrap { display:flex; flex-direction:column; }
-    .mapwrap { flex:0 0 46dvh; order:1; } aside { order:2; flex:1 1 0; border-right:0; border-top:1px solid var(--line); padding:10px 12px 28px; }
-    #toolbar { left:8px; right:8px; top:8px; transform:none; max-width:none; flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start; -webkit-overflow-scrolling:touch; }
-    #toolbar button { flex:none; min-height:40px; }
-    input[type=text], input[type=number], select { font-size:16px; }
-    #hint { top:60px; bottom:auto; }
-    h1, aside > .sub { display:none; } .banner { font-size:11.5px; padding:5px 8px; margin:0 0 6px; }
-    .leaflet-top .leaflet-control { margin-top:62px; }
-  }
+  #tabs { display:flex; gap:3px; padding:3px; background:var(--panel2); border-radius:12px; margin:8px 0 4px; position:sticky; top:-14px; z-index:5; }
+  #tabs button { flex:1 1 0; min-width:0; margin:0; padding:8px 2px; background:transparent; border:0; border-radius:9px; color:var(--mute); font-weight:600; min-height:42px; }
+  #tabs button.on { background:var(--accent); color:var(--accent-ink); }
+  section[data-sec] { display:none; } body[data-tab="setup"] [data-sec="setup"], body[data-tab="trp"] [data-sec="trp"], body[data-tab="more"] [data-sec="more"] { display:block; }
+  .phone-only { display:none; }
+  #sumRow { display:flex; align-items:center; gap:8px; margin:10px 0 4px; }
+  #posSel, #p-name { flex:1 1 auto; min-width:0; width:auto; font-weight:700; }
+  #p-name { border-color:var(--accent); }
+  #p-new, #p-edit { flex:none; width:42px; padding:0; display:flex; align-items:center; justify-content:center; color:var(--ink); }
+  #p-new svg, #p-edit svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  details > summary { cursor:pointer; color:var(--accent); font-weight:600; padding:6px 0; }
+  .menu { position:fixed; display:none; z-index:1300; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.45); padding:6px; overflow:auto; }
+  .menu.open { display:block; } .menu button { display:block; width:100%; text-align:left; background:transparent; border:0; color:var(--ink); padding:11px 12px; min-height:44px; font-size:15px; }
+  .menu hr { border:0; border-top:1px solid var(--line); margin:4px 0; }
+  /* ---------- phone: map fills the screen, controls live in a bottom sheet you drag up and down ---------- */
+  .phone .wrap { display:flex; flex-direction:column; }
+  .phone .mapwrap { flex:1 1 0; height:auto; order:1; }
+  .phone #toolbar { display:none; }
+  .phone #hint { top:10px; bottom:auto; max-width:calc(100% - 118px); pointer-events:auto; cursor:pointer; }
+  .phone .phone-only { display:block; } .phone .deskhead { display:none; }
+  .phone aside { display:flex; flex-direction:column; flex:none; padding:0; overflow:hidden; border-right:0; border-top:1px solid var(--line); border-radius:18px 18px 0 0; box-shadow:0 -6px 24px rgba(0,0,0,.4); position:relative; z-index:900; transition:height .22s ease; order:2; }
+  .phone #sheetHead { flex:none; }
+  .phone #sheetBody { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:4px 16px calc(28px + env(safe-area-inset-bottom, 0px)); -webkit-overflow-scrolling:touch; }
+  #sheetTop { padding:0; } .phone #sheetTop { padding:0 12px 10px; }
+  #grab { height:26px; align-items:center; justify-content:center; touch-action:none; cursor:grab; } .phone #grab { display:flex; }
+  #grab span { width:46px; height:5px; border-radius:3px; background:var(--line); }
+  .phone #sumRow { margin:0; } .phone #posSel, .phone #p-name { font-size:16px; padding:9px 10px; border-radius:10px; min-height:44px; }
+  .phone #p-new, .phone #p-edit { width:44px; height:44px; }
+  #draft { flex:none; font-size:10px; line-height:1.15; letter-spacing:.06em; font-weight:800; text-align:center; color:var(--warn); background:var(--warnbg); border:1px solid color-mix(in srgb, var(--warn) 45%, transparent); border-radius:8px; padding:4px 6px; }
+  #sumText { margin:7px 2px 10px; font-size:13px; color:var(--mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; } #sumText b { color:var(--ink); }
+  #actRow { display:flex; gap:6px; }
+  body:not(.phone) #actRow { display:none; }
+  #actRow button { flex:1 1 0; min-width:0; margin:0; padding:6px 2px; min-height:56px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:12px; font-weight:600; background:var(--panel2); color:var(--ink); border:1px solid var(--line); line-height:1.1; text-align:center; }
+  #actRow button.primary, #actRow button.on { background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+  #actRow button svg { width:22px; height:22px; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  #actRow.big button { flex-direction:row; gap:8px; font-size:15px; min-height:62px; padding:8px 10px; }
+  .phone #tabs { display:none; position:static; margin:0 12px 10px; } .phone[data-sheet="half"] #tabs, .phone[data-sheet="full"] #tabs { display:flex; }
+  .phone #sheetBody h2 { font-size:14px; margin:16px 0 2px; }
+  .phone label { font-size:13px; }
+  input[type=text], input[type=number], select { font-size:16px; }
+  .leaflet-bar, .leaflet-control-layers { border:1px solid var(--line) !important; border-radius:12px !important; box-shadow:0 2px 8px rgba(0,0,0,.4) !important; overflow:hidden; }
+  .leaflet-bar a, .leaflet-control-layers-toggle { background-color:color-mix(in srgb, var(--panel) 90%, transparent) !important; color:var(--ink) !important; border-color:var(--line) !important; }
+  .leaflet-control-layers { background:var(--panel) !important; color:var(--ink); }
+  .leaflet-control-scale-line { background:color-mix(in srgb, var(--panel) 85%, transparent) !important; color:var(--ink); border-color:var(--ink) !important; font-weight:600; }
+  .leaflet-control-attribution { font-size:10px; }
+  /* phone held sideways: controls become a panel on the right, the map fills the rest */
+  .phone.land .wrap { flex-direction:row; }
+  .phone.land aside { order:2; width:min(400px, 44vw); height:auto !important; border-radius:0; border-top:0; border-left:1px solid var(--line); box-shadow:none; transition:none; }
+  .phone.land #grab, .phone.land #sumText { display:none; } .phone.land #tabs { display:flex; margin:0 8px 8px; }
+  .phone.land #sheetTop { padding:8px 8px 8px; } .phone.land #actRow button { min-height:46px; font-size:11px; }
+  .phone.land #hint { max-width:calc(100% - 130px); }
 </style>
 </head>
-<body data-tab="pos">
+<body data-tab="setup">
 <div class="wrap">
-<aside>
-  <h1>Fire Planner</h1>
-  <div class="sub">Support-by-fire positions, sectors of fire and target reference points</div>
+<aside id="sheet">
+  <div id="sheetHead">
+    <div class="deskhead">
+      <h1>Fire Planner</h1>
+      <div class="sub">Support-by-fire positions, sectors of fire and target reference points</div>
   <div class="banner"><b>Planning aid only.</b> Angles are true azimuth, no grid or magnetic correction. Weapon ranges are typical published figures: confirm them against your manual and unit SOP. For live-fire safety zones use a separate range safety tool.</div>
-  <div class="posbar">
-    <select id="posSel" aria-label="Position"></select>
-    <button id="posNew" title="New position">+</button><button id="posCopy" title="Copy this position">Copy</button><button id="posDel" title="Delete this position">Del</button>
+    </div>
+    <div id="sheetTop">
+      <div id="grab" class="phone-only" role="separator" aria-label="Drag to resize the panel"><span></span></div>
+      <div id="sumRow">
+        <select id="posSel" aria-label="Position"></select>
+        <input type="text" id="p-name" hidden maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Position name">
+        <button id="p-edit" aria-label="Rename position"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button>
+        <button id="p-new" aria-label="New position"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <span id="draft" class="phone-only" title="Planning aid only. Confirm ranges against your manual and SOP.">PLANNING<br>AID</span>
+      </div>
+      <div id="sumText" class="phone-only"></div>
+      <div id="actRow" class="phone-only"></div>
+    </div>
+    <nav id="tabs"><button data-tab="setup" class="on">Setup</button><button data-tab="trp">TRPs</button><button data-tab="more">More</button></nav>
   </div>
-  <input type="text" id="posName" maxlength="40" autocomplete="off" aria-label="Position name">
-  <nav id="tabs"><button data-tab="pos" class="on">Position</button><button data-tab="aim">Aim</button><button data-tab="trp">TRPs</button><button data-tab="proj">Project</button></nav>
-
-  <section data-sec="pos">
-    <h2>Firing position</h2>
-    <div class="sub">Place the left and right ends of the position, or a single point. Type lat/lon (<code>35.1, -79.0</code>) or MGRS (<code>17S QV 12345 67890</code>), or use Add on the map toolbar.</div>
-    <label>Left end</label><input type="text" id="cL" placeholder="lat, lon  or  MGRS" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"><div class="readout" id="rL"></div>
-    <label>Right end</label><input type="text" id="cR" placeholder="lat, lon  or  MGRS" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"><div class="readout" id="rR"></div>
-    <label class="chk"><input type="checkbox" id="single"> Single point (ignore right end)</label>
-    <div class="readout" id="lineinfo"></div>
-    <div class="row"><button id="locL">Left end &rarr; my location</button><button id="locR">Right end &rarr; my location</button></div>
-    <div class="row3"><button data-clear="L">Clear left</button><button data-clear="R">Clear right</button><button data-clear="all">Clear all</button></div>
-  </section>
-
-  <section data-sec="aim">
+  <div id="sheetBody">
+  <section data-sec="setup">
     <h2>Direction of fire and sector</h2>
     <label>Azimuth (&deg; true), or drag the red arrow on the map</label><input type="number" id="az" step="any" value="0">
     <div class="row"><div><label>Left limit (&deg; left of azimuth)</label><input type="number" id="limL" min="0" max="179" step="any" value="0"></div><div><label>Right limit (&deg; right of azimuth)</label><input type="number" id="limR" min="0" max="179" step="any" value="0"></div></div>
@@ -110,20 +145,33 @@
     <div class="sub" id="wpnInfo"></div>
     <div class="sub">The sector fan on the map is drawn out to the max effective range. Preset ranges are typical published figures: check them against your handbook and weapon manual.</div>
   </section>
-
+  <section data-sec="setup">
+    <h2>Firing position</h2>
+    <div class="sub">Place the left and right ends of the position, or a single point. Type lat/lon (<code>35.1, -79.0</code>) or MGRS (<code>17S QV 12345 67890</code>), or use Add on the map toolbar.</div>
+    <label>Left end</label><input type="text" id="cL" placeholder="lat, lon  or  MGRS" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"><div class="readout" id="rL"></div>
+    <label>Right end</label><input type="text" id="cR" placeholder="lat, lon  or  MGRS" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"><div class="readout" id="rR"></div>
+    <label class="chk"><input type="checkbox" id="single"> Single point (ignore right end)</label>
+    <div class="readout" id="lineinfo"></div>
+    <div class="row"><button id="locL">Left end &rarr; my location</button><button id="locR">Right end &rarr; my location</button></div>
+    <div class="row3"><button data-clear="L">Clear left</button><button data-clear="R">Clear right</button><button data-clear="all">Clear all</button></div>
+  </section>
   <section data-sec="trp">
     <h2>Target reference points</h2>
     <div class="sub" id="trpFor"></div>
+    <button id="tMap" style="margin-top:8px;width:100%" class="primary">Add TRPs by tapping the map</button>
+    <details id="tMore" style="margin-top:8px"><summary>Add by coordinate or azimuth and distance</summary>
     <label>Add by coordinate</label>
     <div class="row" style="grid-template-columns:1fr auto"><input type="text" id="tC" placeholder="lat, lon  or  MGRS" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"><button id="tAddC">Add</button></div>
     <label>Or by azimuth and distance from the position</label>
     <div class="row3" style="grid-template-columns:1fr 1fr auto"><input type="number" id="tAz" placeholder="az &deg;" step="any"><input type="number" id="tDist" placeholder="meters" min="1" step="any"><button id="tAddP">Add</button></div>
-    <button id="tMap" style="margin-top:8px;width:100%">Add TRP by tapping the map</button>
+    </details>
     <div id="trpList"></div>
     <div class="row"><button id="tCopy">Copy fire plan</button><button id="tClear">Clear all TRPs</button></div>
   </section>
-
-  <section data-sec="proj">
+  <section data-sec="more">
+    <div class="banner phone-only"><b>Planning aid only.</b> Angles are true azimuth, no grid or magnetic correction. Weapon ranges are typical published figures: confirm them against your manual and unit SOP. For live-fire safety zones use a separate range safety tool.</div>
+    <h2>This position</h2>
+    <div class="row"><button id="posCopy">Copy position</button><button id="posDel">Delete position</button></div>
     <h2>Project</h2>
     <div class="sub">Everything is saved automatically in this browser. Nothing is sent to any server. Map pictures load from Esri World Imagery and OpenStreetMap.</div>
     <button class="primary" id="kml" style="width:100%">Download KML (Google Earth)</button>
@@ -133,6 +181,7 @@
     <div class="sub" id="about" style="display:none;margin-top:10px">Built with Leaflet (BSD-2-Clause). Weapon figures are typical published ranges and are not authoritative. Always confirm against current doctrine, the weapon manual and your unit SOP.</div>
   </section>
   <div id="tip" hidden><a id="tipLink" href="#" target="_blank" rel="noopener noreferrer">☕ Buy me a coffee</a></div>
+  </div>
 </aside>
 <div class="mapwrap">
   <div id="toolbar">
@@ -151,6 +200,17 @@
   <div id="hint"></div>
   <div id="map"><div class="nomap">Loading map&hellip; (map tiles need internet; coordinates, angles and the KML export all work offline)</div></div>
 </div>
+</div>
+
+<div id="moremenu" class="menu">
+  <button data-m="limL">Set left limit of fire</button>
+  <button data-m="limR">Set right limit of fire</button>
+  <button data-m="del">Delete pins</button>
+  <button data-m="fit">Zoom to this position</button>
+  <hr>
+  <button data-m="copy">Copy fire plan</button>
+  <button data-m="kml">Share / download KML</button>
+  <button data-m="theme">Theme: <span id="themeLbl2">Auto</span></button>
 </div>
 
 <script>
@@ -266,23 +326,26 @@ function setTool(t) {
   tool = t;
   document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
   if (map) map.getContainer().style.cursor = ['L', 'R', 'dir', 'limL', 'limR', 'trp'].includes(t) ? 'crosshair' : '';
-  $('hint').textContent = t === 'move' ? '' : verb(HINTS[t]);
+  $('hint').textContent = t === 'move' ? '' : verb(HINTS[t]) + (isPhone() ? '   \u2715 Cancel' : '');
+  if (isPhone() && t !== 'move') setSheet('peek');
+  renderSheet();
 }
+$('hint').onclick = () => { if (tool !== 'move' && isPhone()) setTool('move'); };
 function applyTheme(m) {
   m = ['light', 'dark'].includes(m) ? m : 'auto';
   if (m === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', m);
-  $('themeLbl').textContent = { auto: 'Auto', light: 'Light', dark: 'Dark' }[m];
+  $('themeLbl').textContent = $('themeLbl2').textContent = { auto: 'Auto', light: 'Light', dark: 'Dark' }[m];
   try { localStorage.setItem(THEME_KEY, m); } catch (e) { /* ignore */ }
 }
 $('themeBtn').onclick = () => applyTheme({ Auto: 'light', Light: 'dark', Dark: 'auto' }[$('themeLbl').textContent]);
 $('aboutBtn').onclick = () => { const a = $('about'); a.style.display = a.style.display === 'none' ? '' : 'none'; };
-$('tabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (!b) return; document.body.dataset.tab = b.dataset.tab; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b)); };
+$('tabs').onclick = e => { const b = e.target.closest('button[data-tab]'); if (!b) return; document.body.dataset.tab = b.dataset.tab; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b)); $('sheetBody').scrollTop = 0; };
 
 // ---------- form <-> position
 let syncId = null;
 function syncForm() {
   const st = cur(); syncId = st.id;
-  $('posName').value = st.name; $('single').checked = !!st.single;
+  $('p-name').value = st.name; $('single').checked = !!st.single;
   $('cL').value = st.L ? fmtLL(st.L) : ''; $('cR').value = st.R ? fmtLL(st.R) : '';
   $('az').value = st.az; $('limL').value = st.limL; $('limR').value = st.limR; $('wpn').value = st.wpn; $('max').value = st.max;
   ['cL', 'cR'].forEach(id => $(id).classList.remove('bad'));
@@ -304,7 +367,7 @@ function typed(w) {
   setPoint(w, ll, false); update(true);
 }
 ['L', 'R'].forEach(w => $('c' + w).addEventListener('change', () => typed(w)));
-$('posName').addEventListener('input', e => { cur().name = e.target.value || 'Position'; scheduleSave(); renderSel(); drawSoon(); });
+$('p-name').addEventListener('input', e => { cur().name = e.target.value || 'Position'; scheduleSave(); renderSel(); renderSheet(); drawSoon(); });
 [['az', 'az'], ['limL', 'limL'], ['limR', 'limR']].forEach(([id, k]) => {
   $(id).addEventListener('focus', snap);
   $(id).addEventListener('input', () => { cur()[k] = $(id).value; update(); });
@@ -363,7 +426,7 @@ function delPos() {
   active = Math.min(active, positions.length - 1); setTool('move'); syncForm(); othersSig = ''; update();
   setHint(`Deleted "${nm}" (Undo brings it back)`, 6000);
 }
-$('posNew').onclick = () => newPos(false); $('posCopy').onclick = () => newPos(true); $('posDel').onclick = delPos;
+$('p-new').onclick = () => { newPos(false); if (isPhone()) editName(true); }; $('posCopy').onclick = () => newPos(true); $('posDel').onclick = delPos;
 $('posSel').onchange = e => activate(+e.target.value);
 
 // ---------- TRPs: one list shared by every position; angles are shown relative to the active position
@@ -549,7 +612,7 @@ function drawTrps() {
   });
 }
 // ---------- where do the sectors of fire overlap?
-let ovlLayer = null;
+let ovlLayer = null, lastOvl = 0;
 const secRing = st => {                                           // closed [lon,lat] ring of a position's sector, or null if it has no area
   const o = originOf(st), [lL, lR] = limsOf(st), max = parseFloat(st.max);
   if (!o || !(lL + lR > 0.05) || !(max > 0)) return null;
@@ -572,7 +635,7 @@ function computeOverlaps() {
 }
 function drawOverlap() {
   if (ovlLayer) { ovlLayer.remove(); ovlLayer = null; }
-  const { out, n } = computeOverlaps(), show = $('showOvl').checked;
+  const { out, n } = computeOverlaps(), show = $('showOvl').checked; lastOvl = out.length;
   $('ovl').innerHTML = n < 2 ? 'Overlap needs two or more positions that each have left/right limits and a max effective range.'
     : !out.length ? `No overlap between the ${n} sectors.`
     : out.map(x => `<b>${esc(x.a.name)}</b> and <b>${esc(x.b.name)}</b>: ${Math.round(x.area).toLocaleString()} m² overlap` + (x.trps.length ? `<br>TRPs covered by both: ${x.trps.map(t => esc(t.name)).join(', ')}` : '<br>No TRP inside the overlap')).join('<br><br>');
@@ -591,7 +654,7 @@ function fit() {
   map.fitBounds(L.latLngBounds(pts.map(ll2)).extend(L.latLng(o.lat, o.lon).toBounds(sectorRadius(st) * 1.1)), { maxZoom: 17, padding: [30, 30] });
 }
 function update(doFit) {
-  scheduleSave(); wpnInfo(); renderSel(); readout('L'); readout('R'); lineInfo(); renderTrps(); draw();
+  scheduleSave(); wpnInfo(); renderSel(); readout('L'); readout('R'); lineInfo(); renderTrps(); draw(); renderSheet();
   if (doFit === true) fit();
 }
 
@@ -679,6 +742,108 @@ $('pFile').onchange = e => {
   }).catch(() => setHint('That file is not a Fire Planner project.', 6000));
 };
 
+// ---------- phone: bottom sheet (drag the handle up and down), big context buttons, one "More" menu
+const phoneMQ = matchMedia('(max-width:760px), (max-height:560px)');
+const isPhone = () => document.body.classList.contains('phone');
+const isPhoneNow = () => phoneMQ.matches;
+let sheetState = 'peek', sheetT = 0;
+const ICON = {
+  gps: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+  pin: '<svg viewBox="0 0 24 24"><path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>',
+  one: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg>',
+  trp: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>',
+  dir: '<svg viewBox="0 0 24 24"><path d="M12 3l6 14-6-3-6 3z"/></svg>',
+  undo: '<svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12"/></svg>',
+  done: '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>',
+  more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
+};
+const sheetPx = st => { const top = $('sheetTop').offsetHeight; return st === 'peek' ? top : st === 'half' ? Math.max(top + 240, Math.round(innerHeight * .56)) : Math.round(innerHeight * .88); };
+function setSheet(st, animate, soft) {
+  if (!isPhone()) return;
+  if (document.body.classList.contains('land')) { document.body.dataset.sheet = 'full'; $('sheet').style.height = ''; setTimeout(() => { if (map) map.invalidateSize(); }, 60); return; }
+  sheetState = st; document.body.dataset.sheet = st;
+  const a = $('sheet'), target = 'calc(' + sheetPx(st) + 'px + env(safe-area-inset-bottom, 0px))';
+  if (soft && a.style.height === target) return;
+  a.style.transition = animate === false ? 'none' : ''; a.style.height = target;
+  const done = () => { if (map) { map.invalidateSize(); const o = originOf(cur()); if (o) map.panInside([o.lat, o.lon], { padding: [70, 90], animate: false }); } a.style.transition = ''; };
+  const onEnd = e => { if (e.propertyName === 'height') { a.removeEventListener('transitionend', onEnd); done(); } };
+  a.addEventListener('transitionend', onEnd);
+  clearTimeout(sheetT); sheetT = setTimeout(() => { a.removeEventListener('transitionend', onEnd); done(); }, animate === false ? 60 : 450);
+}
+$('sumText').onclick = () => setSheet(sheetState === 'peek' ? 'half' : sheetState);
+(() => {
+  const g = $('grab'); let dr = null;
+  g.addEventListener('pointerdown', e => { if (!isPhone()) return; dr = { y: e.clientY, h: $('sheet').getBoundingClientRect().height, moved: 0 }; $('sheet').style.transition = 'none'; g.setPointerCapture(e.pointerId); });
+  g.addEventListener('pointermove', e => { if (!dr) return; const dy = dr.y - e.clientY; dr.moved = Math.max(dr.moved, Math.abs(dy)); $('sheet').style.height = Math.min(innerHeight * .88, Math.max(sheetPx('peek'), dr.h + dy)) + 'px'; });
+  const end = () => {
+    if (!dr) return; const d = dr, h = $('sheet').getBoundingClientRect().height; dr = null;
+    if (d.moved < 6) { setSheet(sheetState === 'peek' ? 'half' : 'peek'); return; }
+    setSheet(['peek', 'half', 'full'].map(x => [x, Math.abs(sheetPx(x) - h)]).sort((p, q) => p[1] - q[1])[0][0]);
+  };
+  g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
+})();
+const actionState = () => { const st = cur(); return !st.L ? 'start' : (!st.R && !st.single) ? 'second' : 'main'; };
+function renderSheet() {
+  if (!isPhone() || !positions[active]) return;
+  const st = cur(), o = originOf(st), az = parseFloat(st.az) || 0, [lL, lR] = limsOf(st), parts = [`<b>${esc(st.name)}</b>`];
+  if (o) parts.push(`az ${d3(az)}°`);
+  if (lL + lR > 0.05) parts.push(`${d3(az - lL)}°–${d3(az + lR)}°`);
+  if (trps.length) parts.push(`${trps.length} TRP${trps.length > 1 ? 's' : ''}`);
+  if (lastOvl) parts.push(`<span style="color:var(--warn)">${lastOvl} overlap${lastOvl > 1 ? 's' : ''}</span>`);
+  $('sumText').innerHTML = parts.join(' · ');
+  const state = actionState(), B = (act, icon, label, cls) => `<button data-act="${act}" class="${cls || ''}">${icon}<span>${label}</span></button>`;
+  $('actRow').className = state === 'main' ? '' : 'big';
+  $('actRow').innerHTML = state === 'start' ? B('gps-L', ICON.gps, 'Use my location', 'primary') + B('place-L', ICON.pin, 'Place on map')
+    : state === 'second' ? B('gps-R', ICON.gps, 'Right end here', 'primary') + B('place-R', ICON.pin, 'Tap right end') + B('single', ICON.one, 'Single point')
+    : (tool === 'trp' ? B('trp', ICON.done, 'Done', 'on') : B('trp', ICON.trp, 'Add TRP', 'primary')) + B('dir', ICON.dir, 'Aim', tool === 'dir' ? 'on' : '') + B('undo', ICON.undo, 'Undo') + B('gps', ICON.gps, 'GPS', gpsWatch != null ? 'on' : '') + B('more', ICON.more, 'More');
+  setSheet(sheetState, false, true);
+}
+$('actRow').onclick = e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return; const k = b.dataset.act;
+  if (k === 'gps-L') useLocation('L'); else if (k === 'gps-R') useLocation('R');
+  else if (k === 'place-L') setTool('L'); else if (k === 'place-R') setTool('R');
+  else if (k === 'single') { snap(); cur().single = true; syncForm(); update(); }
+  else if (k === 'trp') setTool(tool === 'trp' ? 'move' : 'trp'); else if (k === 'dir') setTool(tool === 'dir' ? 'move' : 'dir');
+  else if (k === 'undo') undo(); else if (k === 'gps') { $('tGps').click(); renderSheet(); }
+  else if (k === 'more') openMenu($('moremenu'), b);
+};
+function closeMenus() { document.querySelectorAll('.menu').forEach(m => m.classList.remove('open')); }
+function openMenu(m, anchor) {
+  const was = m.classList.contains('open'); closeMenus(); if (was) return;
+  const b = anchor.getBoundingClientRect(), w = Math.min(280, innerWidth - 16), above = b.top - 14, below = innerHeight - b.bottom - 14;
+  m.style.width = w + 'px'; m.style.left = Math.max(8, Math.min(b.left, innerWidth - w - 8)) + 'px';
+  if (above >= below) { m.style.top = 'auto'; m.style.bottom = (innerHeight - b.top + 6) + 'px'; m.style.maxHeight = Math.max(120, above) + 'px'; }
+  else { m.style.bottom = 'auto'; m.style.top = (b.bottom + 6) + 'px'; m.style.maxHeight = Math.max(120, below) + 'px'; }
+  m.classList.add('open');
+}
+document.addEventListener('click', e => { if (!e.target.closest('.menu') && !e.target.closest('#actRow')) closeMenus(); });
+$('moremenu').onclick = e => {
+  const b = e.target.closest('button[data-m]'); if (!b) return; const k = b.dataset.m; closeMenus();
+  if (k === 'limL' || k === 'limR' || k === 'del') setTool(k); else if (k === 'fit') fit();
+  else if (k === 'copy') $('tCopy').click(); else if (k === 'kml') $('kml').click(); else if (k === 'theme') $('themeBtn').click();
+};
+function editName(on) {
+  const n = $('p-name'); $('posSel').hidden = on; n.hidden = !on; $('p-edit').style.display = on ? 'none' : '';
+  if (on) { n.value = cur().name; n.focus(); n.select(); } else renderSheet();
+}
+$('p-edit').onclick = () => editName(true);
+$('p-name').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); e.target.blur(); } });
+$('p-name').addEventListener('blur', () => { if (!$('p-name').hidden) { editName(false); update(); } });
+function applyPhone() {
+  const phone = phoneMQ.matches, land = phone && innerWidth > innerHeight;
+  document.body.classList.toggle('phone', phone); document.body.classList.toggle('land', land);
+  if (phone) { renderSheet(); setSheet(sheetState, false); } else { $('sheet').style.height = ''; delete document.body.dataset.sheet; }
+  setTimeout(() => { if (map) map.invalidateSize(); }, 120);
+}
+phoneMQ.addEventListener ? phoneMQ.addEventListener('change', applyPhone) : phoneMQ.addListener(applyPhone);
+// The on-screen keyboard shrinks the window height only; without this guard a phone in portrait would flip layouts while you type.
+let lastW = innerWidth, rzT = 0;
+const typingNow = () => { const e = document.activeElement; return !!e && /^(INPUT|SELECT|TEXTAREA)$/.test(e.tagName) && !['radio', 'checkbox', 'button'].includes(e.type); };
+addEventListener('resize', () => {
+  if (isPhoneNow() && typingNow() && innerWidth === lastW) return;
+  clearTimeout(rzT); rzT = setTimeout(() => { lastW = innerWidth; applyPhone(); }, 120);
+});
+
 // ---------- optional tip jar: set DONATE_URL to show the link
 const DONATE_URL = 'https://buymeacoffee.com/mickeyarmyw';
 if (/^https:\/\//.test(DONATE_URL)) { $('tipLink').href = DONATE_URL; $('tip').hidden = false; }
@@ -696,7 +861,6 @@ function initMap() {
   [sat, osm].forEach(t => t.on('tileerror', () => { if (Date.now() - lastNote > 60000) { lastNote = Date.now(); setHint('Map tiles are not loading (no signal?). Everything else still works. Pick "No map (offline)" in the layers menu.', 8000); } }));
   map.on('zoomend', () => draw());
   map.on('click', e => mapClick(e.latlng));
-  addEventListener('resize', () => map.invalidateSize());
 }
 function boot() {
   try { applyTheme(localStorage.getItem(THEME_KEY) || 'auto'); } catch (e) { applyTheme('auto'); }
@@ -704,10 +868,10 @@ function boot() {
   let restored = false;
   if (saved && Array.isArray(saved.positions) && saved.positions.length) { ({ positions, trps, active } = loadProject(saved)); restored = true; }
   else positions = [blank('SBF 1')];
-  syncForm(); initMap(); update(restored && !!cur().L);
+  syncForm(); applyPhone(); initMap(); update(restored && !!cur().L);
   setTimeout(() => { if (map) map.invalidateSize(); }, 250);
   if (restored) setHint(`Restored ${positions.length} position${positions.length > 1 ? 's' : ''} from your last session`, 6000);
-  else setHint('Start with the Left tool, or type coordinates on the Position tab', 8000);
+  else setHint(isPhone() ? 'Tap "Use my location" or "Place on map" to start' : 'Start with the Left tool, or type coordinates in the sidebar', 8000);
 }
 boot();
 </script>
