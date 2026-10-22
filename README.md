@@ -12,6 +12,12 @@ Open `index.html` (or the hosted page). Place the left and right ends of a posit
 - whether it is inside the left/right limits, and by how much it is inside or outside
 - whether it is within the weapon's maximum effective range
 
+TRPs are shared by every position. Angles, sector checks and range checks are shown relative to whichever position is selected, and each TRP lists which positions' sectors cover it.
+
+**Sector overlap:** where two positions' sectors of fire cross (each needs left/right limits and a max effective range), the overlap is shaded amber on the map and listed on the Aim tab with its area and the TRPs both positions cover.
+
+Picking an M240B preset sets the sector limits from its traverse (tripod 15°, bipod 40° total, split evenly around the azimuth).
+
 **Copy fire plan** puts a text summary on the clipboard. **Download KML** opens in Google Earth. **Save project** writes a JSON file you can open on another device.
 
 Everything is stored in your own browser. Nothing is sent to any server (map pictures load from Esri World Imagery and OpenStreetMap, and the app works with the map turned off).
@@ -24,4 +30,4 @@ Everything is stored in your own browser. Nothing is sent to any server (map pic
 Support-by-fire sectors as their own object, final protective line, range cards, friendly positions.
 
 ## Build
-`index.html` is generated. Edit `src/app.html` and run `python3 tools/build.py`, which inlines Leaflet (BSD-2-Clause) and the MGRS helper from `vendor/`.
+`index.html` is generated. Edit `src/app.html` and run `python3 tools/build.py`, which inlines Leaflet (BSD-2-Clause), polygon-clipping (MIT) and the MGRS helper from `vendor/`.

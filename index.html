@@ -765,6 +765,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <label>Azimuth (&deg; true), or drag the red arrow on the map</label><input type="number" id="az" step="any" value="0">
     <div class="row"><div><label>Left limit (&deg; left of azimuth)</label><input type="number" id="limL" min="0" max="179" step="any" value="0"></div><div><label>Right limit (&deg; right of azimuth)</label><input type="number" id="limR" min="0" max="179" step="any" value="0"></div></div>
     <button id="perp" style="margin-top:8px;width:100%">Face perpendicular to the line</button>
+    <h2>Sector overlap</h2>
+    <label class="chk"><input type="checkbox" id="showOvl" checked> Show where sectors overlap (amber)</label>
+    <div class="sub" id="ovl" style="margin-top:6px"></div>
     <h2>Weapon</h2>
     <div class="row"><div><label>Weapon (point/area, m)</label><select id="wpn"></select></div><div><label>Max effective range (m)</label><input type="number" id="max" min="0" step="any" placeholder="optional"></div></div>
     <div class="sub" id="wpnInfo"></div>
@@ -773,7 +776,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
   <section data-sec="trp">
     <h2>Target reference points</h2>
-    <div class="sub">Angles are measured from the <b>direction of fire</b> (the azimuth on the Aim tab) at the middle of the position.</div>
+    <div class="sub" id="trpFor"></div>
     <label>Add by coordinate</label>
     <div class="row" style="grid-template-columns:1fr auto"><input type="text" id="tC" placeholder="lat, lon  or  MGRS" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off"><button id="tAddC">Add</button></div>
     <label>Or by azimuth and distance from the position</label>
@@ -896,6 +899,33 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
 </script>
 <script>
+/* polygon-clipping (MIT), (c) Mike Fogel. https://github.com/mfogel/polygon-clipping */
+!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t="undefined"!=typeof globalThis?globalThis:t||self).polygonClipping=e()}(this,(function(){"use strict";
+/**
+     * splaytree v3.1.2
+     * Fast Splay tree for Node and browser
+     *
+     * @author Alexander Milevski <info@w8r.name>
+     * @license MIT
+     * @preserve
+     */
+/*! *****************************************************************************
+    Copyright (c) Microsoft Corporation. All rights reserved.
+    Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+    this file except in compliance with the License. You may obtain a copy of the
+    License at http://www.apache.org/licenses/LICENSE-2.0
+
+    THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+    WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+    MERCHANTABLITY OR NON-INFRINGEMENT.
+
+    See the Apache Version 2.0 License for specific language governing permissions
+    and limitations under the License.
+    ***************************************************************************** */function t(t,e){var n,r,i,o,s={label:0,sent:function(){if(1&i[0])throw i[1];return i[1]},trys:[],ops:[]};return o={next:l(0),throw:l(1),return:l(2)},"function"==typeof Symbol&&(o[Symbol.iterator]=function(){return this}),o;function l(o){return function(l){return function(o){if(n)throw new TypeError("Generator is already executing.");for(;s;)try{if(n=1,r&&(i=2&o[0]?r.return:o[0]?r.throw||((i=r.return)&&i.call(r),0):r.next)&&!(i=i.call(r,o[1])).done)return i;switch(r=0,i&&(o=[2&o[0],i.value]),o[0]){case 0:case 1:i=o;break;case 4:return s.label++,{value:o[1],done:!1};case 5:s.label++,r=o[1],o=[0];continue;case 7:o=s.ops.pop(),s.trys.pop();continue;default:if(!(i=s.trys,(i=i.length>0&&i[i.length-1])||6!==o[0]&&2!==o[0])){s=0;continue}if(3===o[0]&&(!i||o[1]>i[0]&&o[1]<i[3])){s.label=o[1];break}if(6===o[0]&&s.label<i[1]){s.label=i[1],i=o;break}if(i&&s.label<i[2]){s.label=i[2],s.ops.push(o);break}i[2]&&s.ops.pop(),s.trys.pop();continue}o=e.call(t,s)}catch(t){o=[6,t],r=0}finally{n=i=0}if(5&o[0])throw o[1];return{value:o[0]?o[1]:void 0,done:!0}}([o,l])}}}var e=function(t,e){this.next=null,this.key=t,this.data=e,this.left=null,this.right=null};function n(t,e){return t>e?1:t<e?-1:0}function r(t,n,r){for(var i=new e(null,null),o=i,s=i;;){var l=r(t,n.key);if(l<0){if(null===n.left)break;if(r(t,n.left.key)<0){var h=n.left;if(n.left=h.right,h.right=n,null===(n=h).left)break}s.left=n,s=n,n=n.left}else{if(!(l>0))break;if(null===n.right)break;if(r(t,n.right.key)>0){h=n.right;if(n.right=h.left,h.left=n,null===(n=h).right)break}o.right=n,o=n,n=n.right}}return o.right=n.left,s.left=n.right,n.left=i.right,n.right=i.left,n}function i(t,n,i,o){var s=new e(t,n);if(null===i)return s.left=s.right=null,s;var l=o(t,(i=r(t,i,o)).key);return l<0?(s.left=i.left,s.right=i,i.left=null):l>=0&&(s.right=i.right,s.left=i,i.right=null),s}function o(t,e,n){var i=null,o=null;if(e){var s=n((e=r(t,e,n)).key,t);0===s?(i=e.left,o=e.right):s<0?(o=e.right,e.right=null,i=e):(i=e.left,e.left=null,o=e)}return{left:i,right:o}}function s(t,e,n,r,i){if(t){r(e+(n?"└── ":"├── ")+i(t)+"\n");var o=e+(n?"    ":"│   ");t.left&&s(t.left,o,!1,r,i),t.right&&s(t.right,o,!0,r,i)}}var l=function(){function l(t){void 0===t&&(t=n),this._root=null,this._size=0,this._comparator=t}return l.prototype.insert=function(t,e){return this._size++,this._root=i(t,e,this._root,this._comparator)},l.prototype.add=function(t,n){var i=new e(t,n);null===this._root&&(i.left=i.right=null,this._size++,this._root=i);var o=this._comparator,s=r(t,this._root,o),l=o(t,s.key);return 0===l?this._root=s:(l<0?(i.left=s.left,i.right=s,s.left=null):l>0&&(i.right=s.right,i.left=s,s.right=null),this._size++,this._root=i),this._root},l.prototype.remove=function(t){this._root=this._remove(t,this._root,this._comparator)},l.prototype._remove=function(t,e,n){var i;return null===e?null:0===n(t,(e=r(t,e,n)).key)?(null===e.left?i=e.right:(i=r(t,e.left,n)).right=e.right,this._size--,i):e},l.prototype.pop=function(){var t=this._root;if(t){for(;t.left;)t=t.left;return this._root=r(t.key,this._root,this._comparator),this._root=this._remove(t.key,this._root,this._comparator),{key:t.key,data:t.data}}return null},l.prototype.findStatic=function(t){for(var e=this._root,n=this._comparator;e;){var r=n(t,e.key);if(0===r)return e;e=r<0?e.left:e.right}return null},l.prototype.find=function(t){return this._root&&(this._root=r(t,this._root,this._comparator),0!==this._comparator(t,this._root.key))?null:this._root},l.prototype.contains=function(t){for(var e=this._root,n=this._comparator;e;){var r=n(t,e.key);if(0===r)return!0;e=r<0?e.left:e.right}return!1},l.prototype.forEach=function(t,e){for(var n=this._root,r=[],i=!1;!i;)null!==n?(r.push(n),n=n.left):0!==r.length?(n=r.pop(),t.call(e,n),n=n.right):i=!0;return this},l.prototype.range=function(t,e,n,r){for(var i=[],o=this._comparator,s=this._root;0!==i.length||s;)if(s)i.push(s),s=s.left;else{if(o((s=i.pop()).key,e)>0)break;if(o(s.key,t)>=0&&n.call(r,s))return this;s=s.right}return this},l.prototype.keys=function(){var t=[];return this.forEach((function(e){var n=e.key;return t.push(n)})),t},l.prototype.values=function(){var t=[];return this.forEach((function(e){var n=e.data;return t.push(n)})),t},l.prototype.min=function(){return this._root?this.minNode(this._root).key:null},l.prototype.max=function(){return this._root?this.maxNode(this._root).key:null},l.prototype.minNode=function(t){if(void 0===t&&(t=this._root),t)for(;t.left;)t=t.left;return t},l.prototype.maxNode=function(t){if(void 0===t&&(t=this._root),t)for(;t.right;)t=t.right;return t},l.prototype.at=function(t){for(var e=this._root,n=!1,r=0,i=[];!n;)if(e)i.push(e),e=e.left;else if(i.length>0){if(e=i.pop(),r===t)return e;r++,e=e.right}else n=!0;return null},l.prototype.next=function(t){var e=this._root,n=null;if(t.right){for(n=t.right;n.left;)n=n.left;return n}for(var r=this._comparator;e;){var i=r(t.key,e.key);if(0===i)break;i<0?(n=e,e=e.left):e=e.right}return n},l.prototype.prev=function(t){var e=this._root,n=null;if(null!==t.left){for(n=t.left;n.right;)n=n.right;return n}for(var r=this._comparator;e;){var i=r(t.key,e.key);if(0===i)break;i<0?e=e.left:(n=e,e=e.right)}return n},l.prototype.clear=function(){return this._root=null,this._size=0,this},l.prototype.toList=function(){return function(t){var n=t,r=[],i=!1,o=new e(null,null),s=o;for(;!i;)n?(r.push(n),n=n.left):r.length>0?n=(n=s=s.next=r.pop()).right:i=!0;return s.next=null,o.next}(this._root)},l.prototype.load=function(t,n,r){void 0===n&&(n=[]),void 0===r&&(r=!1);var i=t.length,o=this._comparator;if(r&&f(t,n,0,i-1,o),null===this._root)this._root=h(t,n,0,i),this._size=i;else{var s=function(t,n,r){var i=new e(null,null),o=i,s=t,l=n;for(;null!==s&&null!==l;)r(s.key,l.key)<0?(o.next=s,s=s.next):(o.next=l,l=l.next),o=o.next;null!==s?o.next=s:null!==l&&(o.next=l);return i.next}(this.toList(),function(t,n){for(var r=new e(null,null),i=r,o=0;o<t.length;o++)i=i.next=new e(t[o],n[o]);return i.next=null,r.next}(t,n),o);i=this._size+i,this._root=u({head:s},0,i)}return this},l.prototype.isEmpty=function(){return null===this._root},Object.defineProperty(l.prototype,"size",{get:function(){return this._size},enumerable:!0,configurable:!0}),Object.defineProperty(l.prototype,"root",{get:function(){return this._root},enumerable:!0,configurable:!0}),l.prototype.toString=function(t){void 0===t&&(t=function(t){return String(t.key)});var e=[];return s(this._root,"",!0,(function(t){return e.push(t)}),t),e.join("")},l.prototype.update=function(t,e,n){var s=this._comparator,l=o(t,this._root,s),h=l.left,u=l.right;s(t,e)<0?u=i(e,n,u,s):h=i(e,n,h,s),this._root=function(t,e,n){return null===e?t:(null===t||((e=r(t.key,e,n)).left=t),e)}(h,u,s)},l.prototype.split=function(t){return o(t,this._root,this._comparator)},l.prototype[Symbol.iterator]=function(){var e,n,r;return t(this,(function(t){switch(t.label){case 0:e=this._root,n=[],r=!1,t.label=1;case 1:return r?[3,6]:null===e?[3,2]:(n.push(e),e=e.left,[3,5]);case 2:return 0===n.length?[3,4]:[4,e=n.pop()];case 3:return t.sent(),e=e.right,[3,5];case 4:r=!0,t.label=5;case 5:return[3,1];case 6:return[2]}}))},l}();function h(t,n,r,i){var o=i-r;if(o>0){var s=r+Math.floor(o/2),l=t[s],u=n[s],f=new e(l,u);return f.left=h(t,n,r,s),f.right=h(t,n,s+1,i),f}return null}function u(t,e,n){var r=n-e;if(r>0){var i=e+Math.floor(r/2),o=u(t,e,i),s=t.head;return s.left=o,t.head=t.head.next,s.right=u(t,i+1,n),s}return null}function f(t,e,n,r,i){if(!(n>=r)){for(var o=t[n+r>>1],s=n-1,l=r+1;;){do{s++}while(i(t[s],o)<0);do{l--}while(i(t[l],o)>0);if(s>=l)break;var h=t[s];t[s]=t[l],t[l]=h,h=e[s],e[s]=e[l],e[l]=h}f(t,e,n,l,i),f(t,e,l+1,r,i)}}const c=(t,e)=>t.ll.x<=e.x&&e.x<=t.ur.x&&t.ll.y<=e.y&&e.y<=t.ur.y,p=(t,e)=>{if(e.ur.x<t.ll.x||t.ur.x<e.ll.x||e.ur.y<t.ll.y||t.ur.y<e.ll.y)return null;const n=t.ll.x<e.ll.x?e.ll.x:t.ll.x,r=t.ur.x<e.ur.x?t.ur.x:e.ur.x;return{ll:{x:n,y:t.ll.y<e.ll.y?e.ll.y:t.ll.y},ur:{x:r,y:t.ur.y<e.ur.y?t.ur.y:e.ur.y}}};let g=Number.EPSILON;void 0===g&&(g=Math.pow(2,-52));const a=g*g,y=(t,e)=>{if(-g<t&&t<g&&-g<e&&e<g)return 0;const n=t-e;return n*n<a*t*e?0:t<e?-1:1};class x{constructor(){this.tree=new l,this.round(0)}round(t){const e=this.tree.add(t),n=this.tree.prev(e);if(null!==n&&0===y(e.key,n.key))return this.tree.remove(t),n.key;const r=this.tree.next(e);return null!==r&&0===y(e.key,r.key)?(this.tree.remove(t),r.key):t}}const b=new class{constructor(){this.reset()}reset(){this.xRounder=new x,this.yRounder=new x}round(t,e){return{x:this.xRounder.round(t),y:this.yRounder.round(e)}}},v=11102230246251565e-32,d=134217729,m=(3+8*v)*v;function E(t,e,n,r,i){let o,s,l,h,u=e[0],f=r[0],c=0,p=0;f>u==f>-u?(o=u,u=e[++c]):(o=f,f=r[++p]);let g=0;if(c<t&&p<n)for(f>u==f>-u?(s=u+o,l=o-(s-u),u=e[++c]):(s=f+o,l=o-(s-f),f=r[++p]),o=s,0!==l&&(i[g++]=l);c<t&&p<n;)f>u==f>-u?(s=o+u,h=s-o,l=o-(s-h)+(u-h),u=e[++c]):(s=o+f,h=s-o,l=o-(s-h)+(f-h),f=r[++p]),o=s,0!==l&&(i[g++]=l);for(;c<t;)s=o+u,h=s-o,l=o-(s-h)+(u-h),u=e[++c],o=s,0!==l&&(i[g++]=l);for(;p<n;)s=o+f,h=s-o,l=o-(s-h)+(f-h),f=r[++p],o=s,0!==l&&(i[g++]=l);return 0===o&&0!==g||(i[g++]=o),g}function S(t){return new Float64Array(t)}const _=22204460492503146e-32,w=11093356479670487e-47,k=S(4),R=S(8),I=S(12),P=S(16),N=S(4);function A(t,e,n,r,i,o){const s=(e-o)*(n-i),l=(t-i)*(r-o),h=s-l,u=Math.abs(s+l);return Math.abs(h)>=33306690738754716e-32*u?h:-function(t,e,n,r,i,o,s){let l,h,u,f,c,p,g,a,y,x,b,v,S,A,O,L,$,M;const z=t-i,B=n-i,G=e-o,T=r-o;A=z*T,p=d*z,g=p-(p-z),a=z-g,p=d*T,y=p-(p-T),x=T-y,O=a*x-(A-g*y-a*y-g*x),L=G*B,p=d*G,g=p-(p-G),a=G-g,p=d*B,y=p-(p-B),x=B-y,$=a*x-(L-g*y-a*y-g*x),b=O-$,c=O-b,k[0]=O-(b+c)+(c-$),v=A+b,c=v-A,S=A-(v-c)+(b-c),b=S-L,c=S-b,k[1]=S-(b+c)+(c-L),M=v+b,c=M-v,k[2]=v-(M-c)+(b-c),k[3]=M;let q=function(t,e){let n=e[0];for(let r=1;r<t;r++)n+=e[r];return n}(4,k),C=_*s;if(q>=C||-q>=C)return q;if(c=t-z,l=t-(z+c)+(c-i),c=n-B,u=n-(B+c)+(c-i),c=e-G,h=e-(G+c)+(c-o),c=r-T,f=r-(T+c)+(c-o),0===l&&0===h&&0===u&&0===f)return q;if(C=w*s+m*Math.abs(q),q+=z*f+T*l-(G*u+B*h),q>=C||-q>=C)return q;A=l*T,p=d*l,g=p-(p-l),a=l-g,p=d*T,y=p-(p-T),x=T-y,O=a*x-(A-g*y-a*y-g*x),L=h*B,p=d*h,g=p-(p-h),a=h-g,p=d*B,y=p-(p-B),x=B-y,$=a*x-(L-g*y-a*y-g*x),b=O-$,c=O-b,N[0]=O-(b+c)+(c-$),v=A+b,c=v-A,S=A-(v-c)+(b-c),b=S-L,c=S-b,N[1]=S-(b+c)+(c-L),M=v+b,c=M-v,N[2]=v-(M-c)+(b-c),N[3]=M;const F=E(4,k,4,N,R);A=z*f,p=d*z,g=p-(p-z),a=z-g,p=d*f,y=p-(p-f),x=f-y,O=a*x-(A-g*y-a*y-g*x),L=G*u,p=d*G,g=p-(p-G),a=G-g,p=d*u,y=p-(p-u),x=u-y,$=a*x-(L-g*y-a*y-g*x),b=O-$,c=O-b,N[0]=O-(b+c)+(c-$),v=A+b,c=v-A,S=A-(v-c)+(b-c),b=S-L,c=S-b,N[1]=S-(b+c)+(c-L),M=v+b,c=M-v,N[2]=v-(M-c)+(b-c),N[3]=M;const j=E(F,R,4,N,I);A=l*f,p=d*l,g=p-(p-l),a=l-g,p=d*f,y=p-(p-f),x=f-y,O=a*x-(A-g*y-a*y-g*x),L=h*u,p=d*h,g=p-(p-h),a=h-g,p=d*u,y=p-(p-u),x=u-y,$=a*x-(L-g*y-a*y-g*x),b=O-$,c=O-b,N[0]=O-(b+c)+(c-$),v=A+b,c=v-A,S=A-(v-c)+(b-c),b=S-L,c=S-b,N[1]=S-(b+c)+(c-L),M=v+b,c=M-v,N[2]=v-(M-c)+(b-c),N[3]=M;const U=E(j,I,4,N,P);return P[U-1]}(t,e,n,r,i,o,u)}const O=(t,e)=>t.x*e.y-t.y*e.x,L=(t,e)=>t.x*e.x+t.y*e.y,$=(t,e,n)=>{const r=A(t.x,t.y,e.x,e.y,n.x,n.y);return r>0?-1:r<0?1:0},M=t=>Math.sqrt(L(t,t)),z=(t,e,n)=>{const r={x:e.x-t.x,y:e.y-t.y},i={x:n.x-t.x,y:n.y-t.y};return O(i,r)/M(i)/M(r)},B=(t,e,n)=>{const r={x:e.x-t.x,y:e.y-t.y},i={x:n.x-t.x,y:n.y-t.y};return L(i,r)/M(i)/M(r)},G=(t,e,n)=>0===e.y?null:{x:t.x+e.x/e.y*(n-t.y),y:n},T=(t,e,n)=>0===e.x?null:{x:n,y:t.y+e.y/e.x*(n-t.x)};class q{static compare(t,e){const n=q.comparePoints(t.point,e.point);return 0!==n?n:(t.point!==e.point&&t.link(e),t.isLeft!==e.isLeft?t.isLeft?1:-1:F.compare(t.segment,e.segment))}static comparePoints(t,e){return t.x<e.x?-1:t.x>e.x?1:t.y<e.y?-1:t.y>e.y?1:0}constructor(t,e){void 0===t.events?t.events=[this]:t.events.push(this),this.point=t,this.isLeft=e}link(t){if(t.point===this.point)throw new Error("Tried to link already linked events");const e=t.point.events;for(let t=0,n=e.length;t<n;t++){const n=e[t];this.point.events.push(n),n.point=this.point}this.checkForConsuming()}checkForConsuming(){const t=this.point.events.length;for(let e=0;e<t;e++){const n=this.point.events[e];if(void 0===n.segment.consumedBy)for(let r=e+1;r<t;r++){const t=this.point.events[r];void 0===t.consumedBy&&(n.otherSE.point.events===t.otherSE.point.events&&n.segment.consume(t.segment))}}}getAvailableLinkedEvents(){const t=[];for(let e=0,n=this.point.events.length;e<n;e++){const n=this.point.events[e];n!==this&&!n.segment.ringOut&&n.segment.isInResult()&&t.push(n)}return t}getLeftmostComparator(t){const e=new Map,n=n=>{const r=n.otherSE;e.set(n,{sine:z(this.point,t.point,r.point),cosine:B(this.point,t.point,r.point)})};return(t,r)=>{e.has(t)||n(t),e.has(r)||n(r);const{sine:i,cosine:o}=e.get(t),{sine:s,cosine:l}=e.get(r);return i>=0&&s>=0?o<l?1:o>l?-1:0:i<0&&s<0?o<l?-1:o>l?1:0:s<i?-1:s>i?1:0}}}let C=0;class F{static compare(t,e){const n=t.leftSE.point.x,r=e.leftSE.point.x,i=t.rightSE.point.x,o=e.rightSE.point.x;if(o<n)return 1;if(i<r)return-1;const s=t.leftSE.point.y,l=e.leftSE.point.y,h=t.rightSE.point.y,u=e.rightSE.point.y;if(n<r){if(l<s&&l<h)return 1;if(l>s&&l>h)return-1;const n=t.comparePoint(e.leftSE.point);if(n<0)return 1;if(n>0)return-1;const r=e.comparePoint(t.rightSE.point);return 0!==r?r:-1}if(n>r){if(s<l&&s<u)return-1;if(s>l&&s>u)return 1;const n=e.comparePoint(t.leftSE.point);if(0!==n)return n;const r=t.comparePoint(e.rightSE.point);return r<0?1:r>0?-1:1}if(s<l)return-1;if(s>l)return 1;if(i<o){const n=e.comparePoint(t.rightSE.point);if(0!==n)return n}if(i>o){const n=t.comparePoint(e.rightSE.point);if(n<0)return 1;if(n>0)return-1}if(i!==o){const t=h-s,e=i-n,f=u-l,c=o-r;if(t>e&&f<c)return 1;if(t<e&&f>c)return-1}return i>o?1:i<o||h<u?-1:h>u?1:t.id<e.id?-1:t.id>e.id?1:0}constructor(t,e,n,r){this.id=++C,this.leftSE=t,t.segment=this,t.otherSE=e,this.rightSE=e,e.segment=this,e.otherSE=t,this.rings=n,this.windings=r}static fromRing(t,e,n){let r,i,o;const s=q.comparePoints(t,e);if(s<0)r=t,i=e,o=1;else{if(!(s>0))throw new Error(`Tried to create degenerate segment at [${t.x}, ${t.y}]`);r=e,i=t,o=-1}const l=new q(r,!0),h=new q(i,!1);return new F(l,h,[n],[o])}replaceRightSE(t){this.rightSE=t,this.rightSE.segment=this,this.rightSE.otherSE=this.leftSE,this.leftSE.otherSE=this.rightSE}bbox(){const t=this.leftSE.point.y,e=this.rightSE.point.y;return{ll:{x:this.leftSE.point.x,y:t<e?t:e},ur:{x:this.rightSE.point.x,y:t>e?t:e}}}vector(){return{x:this.rightSE.point.x-this.leftSE.point.x,y:this.rightSE.point.y-this.leftSE.point.y}}isAnEndpoint(t){return t.x===this.leftSE.point.x&&t.y===this.leftSE.point.y||t.x===this.rightSE.point.x&&t.y===this.rightSE.point.y}comparePoint(t){if(this.isAnEndpoint(t))return 0;const e=this.leftSE.point,n=this.rightSE.point,r=this.vector();if(e.x===n.x)return t.x===e.x?0:t.x<e.x?1:-1;const i=(t.y-e.y)/r.y,o=e.x+i*r.x;if(t.x===o)return 0;const s=(t.x-e.x)/r.x,l=e.y+s*r.y;return t.y===l?0:t.y<l?-1:1}getIntersection(t){const e=this.bbox(),n=t.bbox(),r=p(e,n);if(null===r)return null;const i=this.leftSE.point,o=this.rightSE.point,s=t.leftSE.point,l=t.rightSE.point,h=c(e,s)&&0===this.comparePoint(s),u=c(n,i)&&0===t.comparePoint(i),f=c(e,l)&&0===this.comparePoint(l),g=c(n,o)&&0===t.comparePoint(o);if(u&&h)return g&&!f?o:!g&&f?l:null;if(u)return f&&i.x===l.x&&i.y===l.y?null:i;if(h)return g&&o.x===s.x&&o.y===s.y?null:s;if(g&&f)return null;if(g)return o;if(f)return l;const a=((t,e,n,r)=>{if(0===e.x)return T(n,r,t.x);if(0===r.x)return T(t,e,n.x);if(0===e.y)return G(n,r,t.y);if(0===r.y)return G(t,e,n.y);const i=O(e,r);if(0==i)return null;const o={x:n.x-t.x,y:n.y-t.y},s=O(o,e)/i,l=O(o,r)/i;return{x:(t.x+l*e.x+(n.x+s*r.x))/2,y:(t.y+l*e.y+(n.y+s*r.y))/2}})(i,this.vector(),s,t.vector());return null===a?null:c(r,a)?b.round(a.x,a.y):null}split(t){const e=[],n=void 0!==t.events,r=new q(t,!0),i=new q(t,!1),o=this.rightSE;this.replaceRightSE(i),e.push(i),e.push(r);const s=new F(r,o,this.rings.slice(),this.windings.slice());return q.comparePoints(s.leftSE.point,s.rightSE.point)>0&&s.swapEvents(),q.comparePoints(this.leftSE.point,this.rightSE.point)>0&&this.swapEvents(),n&&(r.checkForConsuming(),i.checkForConsuming()),e}swapEvents(){const t=this.rightSE;this.rightSE=this.leftSE,this.leftSE=t,this.leftSE.isLeft=!0,this.rightSE.isLeft=!1;for(let t=0,e=this.windings.length;t<e;t++)this.windings[t]*=-1}consume(t){let e=this,n=t;for(;e.consumedBy;)e=e.consumedBy;for(;n.consumedBy;)n=n.consumedBy;const r=F.compare(e,n);if(0!==r){if(r>0){const t=e;e=n,n=t}if(e.prev===n){const t=e;e=n,n=t}for(let t=0,r=n.rings.length;t<r;t++){const r=n.rings[t],i=n.windings[t],o=e.rings.indexOf(r);-1===o?(e.rings.push(r),e.windings.push(i)):e.windings[o]+=i}n.rings=null,n.windings=null,n.consumedBy=e,n.leftSE.consumedBy=e.leftSE,n.rightSE.consumedBy=e.rightSE}}prevInResult(){return void 0!==this._prevInResult||(this.prev?this.prev.isInResult()?this._prevInResult=this.prev:this._prevInResult=this.prev.prevInResult():this._prevInResult=null),this._prevInResult}beforeState(){if(void 0!==this._beforeState)return this._beforeState;if(this.prev){const t=this.prev.consumedBy||this.prev;this._beforeState=t.afterState()}else this._beforeState={rings:[],windings:[],multiPolys:[]};return this._beforeState}afterState(){if(void 0!==this._afterState)return this._afterState;const t=this.beforeState();this._afterState={rings:t.rings.slice(0),windings:t.windings.slice(0),multiPolys:[]};const e=this._afterState.rings,n=this._afterState.windings,r=this._afterState.multiPolys;for(let t=0,r=this.rings.length;t<r;t++){const r=this.rings[t],i=this.windings[t],o=e.indexOf(r);-1===o?(e.push(r),n.push(i)):n[o]+=i}const i=[],o=[];for(let t=0,r=e.length;t<r;t++){if(0===n[t])continue;const r=e[t],s=r.poly;if(-1===o.indexOf(s))if(r.isExterior)i.push(s);else{-1===o.indexOf(s)&&o.push(s);const t=i.indexOf(r.poly);-1!==t&&i.splice(t,1)}}for(let t=0,e=i.length;t<e;t++){const e=i[t].multiPoly;-1===r.indexOf(e)&&r.push(e)}return this._afterState}isInResult(){if(this.consumedBy)return!1;if(void 0!==this._isInResult)return this._isInResult;const t=this.beforeState().multiPolys,e=this.afterState().multiPolys;switch(H.type){case"union":{const n=0===t.length,r=0===e.length;this._isInResult=n!==r;break}case"intersection":{let n,r;t.length<e.length?(n=t.length,r=e.length):(n=e.length,r=t.length),this._isInResult=r===H.numMultiPolys&&n<r;break}case"xor":{const n=Math.abs(t.length-e.length);this._isInResult=n%2==1;break}case"difference":{const n=t=>1===t.length&&t[0].isSubject;this._isInResult=n(t)!==n(e);break}default:throw new Error(`Unrecognized operation type found ${H.type}`)}return this._isInResult}}class j{constructor(t,e,n){if(!Array.isArray(t)||0===t.length)throw new Error("Input geometry is not a valid Polygon or MultiPolygon");if(this.poly=e,this.isExterior=n,this.segments=[],"number"!=typeof t[0][0]||"number"!=typeof t[0][1])throw new Error("Input geometry is not a valid Polygon or MultiPolygon");const r=b.round(t[0][0],t[0][1]);this.bbox={ll:{x:r.x,y:r.y},ur:{x:r.x,y:r.y}};let i=r;for(let e=1,n=t.length;e<n;e++){if("number"!=typeof t[e][0]||"number"!=typeof t[e][1])throw new Error("Input geometry is not a valid Polygon or MultiPolygon");let n=b.round(t[e][0],t[e][1]);n.x===i.x&&n.y===i.y||(this.segments.push(F.fromRing(i,n,this)),n.x<this.bbox.ll.x&&(this.bbox.ll.x=n.x),n.y<this.bbox.ll.y&&(this.bbox.ll.y=n.y),n.x>this.bbox.ur.x&&(this.bbox.ur.x=n.x),n.y>this.bbox.ur.y&&(this.bbox.ur.y=n.y),i=n)}r.x===i.x&&r.y===i.y||this.segments.push(F.fromRing(i,r,this))}getSweepEvents(){const t=[];for(let e=0,n=this.segments.length;e<n;e++){const n=this.segments[e];t.push(n.leftSE),t.push(n.rightSE)}return t}}class U{constructor(t,e){if(!Array.isArray(t))throw new Error("Input geometry is not a valid Polygon or MultiPolygon");this.exteriorRing=new j(t[0],this,!0),this.bbox={ll:{x:this.exteriorRing.bbox.ll.x,y:this.exteriorRing.bbox.ll.y},ur:{x:this.exteriorRing.bbox.ur.x,y:this.exteriorRing.bbox.ur.y}},this.interiorRings=[];for(let e=1,n=t.length;e<n;e++){const n=new j(t[e],this,!1);n.bbox.ll.x<this.bbox.ll.x&&(this.bbox.ll.x=n.bbox.ll.x),n.bbox.ll.y<this.bbox.ll.y&&(this.bbox.ll.y=n.bbox.ll.y),n.bbox.ur.x>this.bbox.ur.x&&(this.bbox.ur.x=n.bbox.ur.x),n.bbox.ur.y>this.bbox.ur.y&&(this.bbox.ur.y=n.bbox.ur.y),this.interiorRings.push(n)}this.multiPoly=e}getSweepEvents(){const t=this.exteriorRing.getSweepEvents();for(let e=0,n=this.interiorRings.length;e<n;e++){const n=this.interiorRings[e].getSweepEvents();for(let e=0,r=n.length;e<r;e++)t.push(n[e])}return t}}class Y{constructor(t,e){if(!Array.isArray(t))throw new Error("Input geometry is not a valid Polygon or MultiPolygon");try{"number"==typeof t[0][0][0]&&(t=[t])}catch(t){}this.polys=[],this.bbox={ll:{x:Number.POSITIVE_INFINITY,y:Number.POSITIVE_INFINITY},ur:{x:Number.NEGATIVE_INFINITY,y:Number.NEGATIVE_INFINITY}};for(let e=0,n=t.length;e<n;e++){const n=new U(t[e],this);n.bbox.ll.x<this.bbox.ll.x&&(this.bbox.ll.x=n.bbox.ll.x),n.bbox.ll.y<this.bbox.ll.y&&(this.bbox.ll.y=n.bbox.ll.y),n.bbox.ur.x>this.bbox.ur.x&&(this.bbox.ur.x=n.bbox.ur.x),n.bbox.ur.y>this.bbox.ur.y&&(this.bbox.ur.y=n.bbox.ur.y),this.polys.push(n)}this.isSubject=e}getSweepEvents(){const t=[];for(let e=0,n=this.polys.length;e<n;e++){const n=this.polys[e].getSweepEvents();for(let e=0,r=n.length;e<r;e++)t.push(n[e])}return t}}class V{static factory(t){const e=[];for(let n=0,r=t.length;n<r;n++){const r=t[n];if(!r.isInResult()||r.ringOut)continue;let i=null,o=r.leftSE,s=r.rightSE;const l=[o],h=o.point,u=[];for(;i=o,o=s,l.push(o),o.point!==h;)for(;;){const t=o.getAvailableLinkedEvents();if(0===t.length){const t=l[0].point,e=l[l.length-1].point;throw new Error(`Unable to complete output ring starting at [${t.x}, ${t.y}]. Last matching segment found ends at [${e.x}, ${e.y}].`)}if(1===t.length){s=t[0].otherSE;break}let n=null;for(let t=0,e=u.length;t<e;t++)if(u[t].point===o.point){n=t;break}if(null!==n){const t=u.splice(n)[0],r=l.splice(t.index);r.unshift(r[0].otherSE),e.push(new V(r.reverse()));continue}u.push({index:l.length,point:o.point});const r=o.getLeftmostComparator(i);s=t.sort(r)[0].otherSE;break}e.push(new V(l))}return e}constructor(t){this.events=t;for(let e=0,n=t.length;e<n;e++)t[e].segment.ringOut=this;this.poly=null}getGeom(){let t=this.events[0].point;const e=[t];for(let n=1,r=this.events.length-1;n<r;n++){const r=this.events[n].point,i=this.events[n+1].point;0!==$(r,t,i)&&(e.push(r),t=r)}if(1===e.length)return null;const n=e[0],r=e[1];0===$(n,t,r)&&e.shift(),e.push(e[0]);const i=this.isExteriorRing()?1:-1,o=this.isExteriorRing()?0:e.length-1,s=this.isExteriorRing()?e.length:-1,l=[];for(let t=o;t!=s;t+=i)l.push([e[t].x,e[t].y]);return l}isExteriorRing(){if(void 0===this._isExteriorRing){const t=this.enclosingRing();this._isExteriorRing=!t||!t.isExteriorRing()}return this._isExteriorRing}enclosingRing(){return void 0===this._enclosingRing&&(this._enclosingRing=this._calcEnclosingRing()),this._enclosingRing}_calcEnclosingRing(){let t=this.events[0];for(let e=1,n=this.events.length;e<n;e++){const n=this.events[e];q.compare(t,n)>0&&(t=n)}let e=t.segment.prevInResult(),n=e?e.prevInResult():null;for(;;){if(!e)return null;if(!n)return e.ringOut;if(n.ringOut!==e.ringOut)return n.ringOut.enclosingRing()!==e.ringOut?e.ringOut:e.ringOut.enclosingRing();e=n.prevInResult(),n=e?e.prevInResult():null}}}class X{constructor(t){this.exteriorRing=t,t.poly=this,this.interiorRings=[]}addInterior(t){this.interiorRings.push(t),t.poly=this}getGeom(){const t=[this.exteriorRing.getGeom()];if(null===t[0])return null;for(let e=0,n=this.interiorRings.length;e<n;e++){const n=this.interiorRings[e].getGeom();null!==n&&t.push(n)}return t}}class Q{constructor(t){this.rings=t,this.polys=this._composePolys(t)}getGeom(){const t=[];for(let e=0,n=this.polys.length;e<n;e++){const n=this.polys[e].getGeom();null!==n&&t.push(n)}return t}_composePolys(t){const e=[];for(let n=0,r=t.length;n<r;n++){const r=t[n];if(!r.poly)if(r.isExteriorRing())e.push(new X(r));else{const t=r.enclosingRing();t.poly||e.push(new X(t)),t.poly.addInterior(r)}}return e}}class W{constructor(t){let e=arguments.length>1&&void 0!==arguments[1]?arguments[1]:F.compare;this.queue=t,this.tree=new l(e),this.segments=[]}process(t){const e=t.segment,n=[];if(t.consumedBy)return t.isLeft?this.queue.remove(t.otherSE):this.tree.remove(e),n;const r=t.isLeft?this.tree.add(e):this.tree.find(e);if(!r)throw new Error(`Unable to find segment #${e.id} [${e.leftSE.point.x}, ${e.leftSE.point.y}] -> [${e.rightSE.point.x}, ${e.rightSE.point.y}] in SweepLine tree.`);let i,o,s=r,l=r;for(;void 0===i;)s=this.tree.prev(s),null===s?i=null:void 0===s.key.consumedBy&&(i=s.key);for(;void 0===o;)l=this.tree.next(l),null===l?o=null:void 0===l.key.consumedBy&&(o=l.key);if(t.isLeft){let r=null;if(i){const t=i.getIntersection(e);if(null!==t&&(e.isAnEndpoint(t)||(r=t),!i.isAnEndpoint(t))){const e=this._splitSafely(i,t);for(let t=0,r=e.length;t<r;t++)n.push(e[t])}}let s=null;if(o){const t=o.getIntersection(e);if(null!==t&&(e.isAnEndpoint(t)||(s=t),!o.isAnEndpoint(t))){const e=this._splitSafely(o,t);for(let t=0,r=e.length;t<r;t++)n.push(e[t])}}if(null!==r||null!==s){let t=null;if(null===r)t=s;else if(null===s)t=r;else{t=q.comparePoints(r,s)<=0?r:s}this.queue.remove(e.rightSE),n.push(e.rightSE);const i=e.split(t);for(let t=0,e=i.length;t<e;t++)n.push(i[t])}n.length>0?(this.tree.remove(e),n.push(t)):(this.segments.push(e),e.prev=i)}else{if(i&&o){const t=i.getIntersection(o);if(null!==t){if(!i.isAnEndpoint(t)){const e=this._splitSafely(i,t);for(let t=0,r=e.length;t<r;t++)n.push(e[t])}if(!o.isAnEndpoint(t)){const e=this._splitSafely(o,t);for(let t=0,r=e.length;t<r;t++)n.push(e[t])}}}this.tree.remove(e)}return n}_splitSafely(t,e){this.tree.remove(t);const n=t.rightSE;this.queue.remove(n);const r=t.split(e);return r.push(n),void 0===t.consumedBy&&this.tree.add(t),r}}const Z="undefined"!=typeof process&&process.env.POLYGON_CLIPPING_MAX_QUEUE_SIZE||1e6,D="undefined"!=typeof process&&process.env.POLYGON_CLIPPING_MAX_SWEEPLINE_SEGMENTS||1e6;const H=new class{run(t,e,n){H.type=t,b.reset();const r=[new Y(e,!0)];for(let t=0,e=n.length;t<e;t++)r.push(new Y(n[t],!1));if(H.numMultiPolys=r.length,"difference"===H.type){const t=r[0];let e=1;for(;e<r.length;)null!==p(r[e].bbox,t.bbox)?e++:r.splice(e,1)}if("intersection"===H.type)for(let t=0,e=r.length;t<e;t++){const e=r[t];for(let n=t+1,i=r.length;n<i;n++)if(null===p(e.bbox,r[n].bbox))return[]}const i=new l(q.compare);for(let t=0,e=r.length;t<e;t++){const e=r[t].getSweepEvents();for(let t=0,n=e.length;t<n;t++)if(i.insert(e[t]),i.size>Z)throw new Error("Infinite loop when putting segment endpoints in a priority queue (queue size too big).")}const o=new W(i);let s=i.size,h=i.pop();for(;h;){const t=h.key;if(i.size===s){const e=t.segment;throw new Error(`Unable to pop() ${t.isLeft?"left":"right"} SweepEvent [${t.point.x}, ${t.point.y}] from segment #${e.id} [${e.leftSE.point.x}, ${e.leftSE.point.y}] -> [${e.rightSE.point.x}, ${e.rightSE.point.y}] from queue.`)}if(i.size>Z)throw new Error("Infinite loop when passing sweep line over endpoints (queue size too big).");if(o.segments.length>D)throw new Error("Infinite loop when passing sweep line over endpoints (too many sweep line segments).");const e=o.process(t);for(let t=0,n=e.length;t<n;t++){const n=e[t];void 0===n.consumedBy&&i.insert(n)}s=i.size,h=i.pop()}b.reset();const u=V.factory(o.segments);return new Q(u).getGeom()}};var J={union:function(t){for(var e=arguments.length,n=new Array(e>1?e-1:0),r=1;r<e;r++)n[r-1]=arguments[r];return H.run("union",t,n)},intersection:function(t){for(var e=arguments.length,n=new Array(e>1?e-1:0),r=1;r<e;r++)n[r-1]=arguments[r];return H.run("intersection",t,n)},xor:function(t){for(var e=arguments.length,n=new Array(e>1?e-1:0),r=1;r<e;r++)n[r-1]=arguments[r];return H.run("xor",t,n)},difference:function(t){for(var e=arguments.length,n=new Array(e>1?e-1:0),r=1;r<e;r++)n[r-1]=arguments[r];return H.run("difference",t,n)}};return J}));
+
+</script>
+<script>
 // ---------- helpers
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -937,8 +967,8 @@ $('wpn').innerHTML = '<option value="">Custom / none</option>' + WPN.map((w, i) 
 
 // ---------- state: a list of positions; the form edits positions[active]
 const KEY = 'firePlanner.v1', THEME_KEY = 'firePlanner.theme';
-let positions = [], active = 0, uid = 0, tool = 'move', map = null;
-const blank = (name, from) => ({ id: ++uid, name, visible: true, L: null, R: null, single: false, az: '0', limL: '0', limR: '0', wpn: from ? from.wpn : '', max: from ? from.max : '', trps: [] });
+let positions = [], trps = [], active = 0, uid = 0, tool = 'move', map = null;   // TRPs are shared by every position
+const blank = (name, from) => ({ id: ++uid, name, visible: true, L: null, R: null, single: false, az: '0', limL: '0', limR: '0', wpn: from ? from.wpn : '', max: from ? from.max : '' });
 const cur = () => positions[active];
 const isSingle = st => st.single || !st.R;
 const originOf = st => st && st.L ? (isSingle(st) ? st.L : { lat: (st.L.lat + st.R.lat) / 2, lon: (st.L.lon + st.R.lon) / 2 }) : null;
@@ -946,18 +976,23 @@ const llOk = p => p && isFinite(+p.lat) && isFinite(+p.lon) && Math.abs(p.lat) <
 function clean(o) {
   const st = blank(typeof o.name === 'string' && o.name ? o.name.slice(0, 40) : 'Position');
   const n = (v, d) => { const x = parseFloat(v); return isFinite(x) ? String(x) : d; };
-  Object.assign(st, { visible: o.visible !== false, L: llOk(o.L), R: llOk(o.R), single: !!o.single, az: n(o.az, '0'), limL: n(o.limL, '0'), limR: n(o.limR, '0'), wpn: WPN[+o.wpn] ? String(+o.wpn) : '', max: o.max === '' || o.max == null ? '' : n(o.max, ''),
-    trps: (Array.isArray(o.trps) ? o.trps : []).map(t => ({ id: ++uid, name: String((t && t.name) || 'TRP').slice(0, 30), ...(llOk(t) || { lat: NaN, lon: NaN }) })).filter(t => isFinite(t.lat)).slice(0, 80) });
+  Object.assign(st, { visible: o.visible !== false, L: llOk(o.L), R: llOk(o.R), single: !!o.single, az: n(o.az, '0'), limL: n(o.limL, '0'), limR: n(o.limR, '0'), wpn: WPN[+o.wpn] ? String(+o.wpn) : '', max: o.max === '' || o.max == null ? '' : n(o.max, '') });
   return st;
+}
+const cleanTrps = arr => (Array.isArray(arr) ? arr : []).map(t => ({ id: ++uid, name: String((t && t.name) || 'TRP').slice(0, 30), ...(llOk(t) || { lat: NaN, lon: NaN }) })).filter(t => isFinite(t.lat)).slice(0, 120);
+function loadProject(o) {                                         // older saves kept TRPs inside each position: merge them, dropping duplicates
+  const pos = o.positions.map(clean); let t = cleanTrps(o.trps);
+  if (!Array.isArray(o.trps)) { const seen = new Set(); o.positions.forEach(p => cleanTrps(p && p.trps).forEach(x => { const k = x.lat.toFixed(6) + ',' + x.lon.toFixed(6); if (!seen.has(k)) { seen.add(k); t.push(x); } })); }
+  return { positions: pos, trps: t, active: Math.min(Math.max(0, +o.active || 0), pos.length - 1) };
 }
 
 // ---------- undo (whole project)
 const hist = [];
-const snapStr = () => JSON.stringify({ positions, active });
+const snapStr = () => JSON.stringify({ positions, trps, active });
 function snap() { const s = snapStr(); if (hist[hist.length - 1] !== s) { hist.push(s); if (hist.length > 80) hist.shift(); } }
 function undo() {
   const s = hist.pop(); if (!s) { setHint('Nothing to undo'); return; }
-  const o = JSON.parse(s); positions = o.positions; active = Math.min(o.active, positions.length - 1);
+  const o = JSON.parse(s); positions = o.positions; trps = o.trps || []; active = Math.min(o.active, positions.length - 1);
   syncForm(); update(); setHint('Undone');
 }
 
@@ -1037,6 +1072,7 @@ $('posName').addEventListener('input', e => { cur().name = e.target.value || 'Po
   $(id).addEventListener('focus', snap);
   $(id).addEventListener('input', () => { cur()[k] = $(id).value; update(); });
 });
+$('showOvl').onchange = () => drawSoon();
 $('single').onchange = () => { snap(); cur().single = $('single').checked; update(); };
 $('perp').onclick = () => {
   const st = cur(); if (!st.L || !st.R || isSingle(st)) { setHint('Place both ends of the line first'); return; }
@@ -1078,8 +1114,8 @@ const nextName = () => { let n = positions.length + 1; while (positions.some(p =
 function newPos(copy) {
   snap(); const b = cur(); let st;
   if (copy) {
-    st = JSON.parse(JSON.stringify(b)); st.id = ++uid; st.name = (b.name + ' (copy)').slice(0, 40); st.trps.forEach(t => { t.id = ++uid; });
-    const sh = p => p && dest(p, 90, 60); st.L = sh(st.L); st.R = sh(st.R); st.trps.forEach(t => Object.assign(t, dest(t, 90, 60)));
+    st = JSON.parse(JSON.stringify(b)); st.id = ++uid; st.name = (b.name + ' (copy)').slice(0, 40);
+    const sh = p => p && dest(p, 90, 60); st.L = sh(st.L); st.R = sh(st.R);
   } else st = blank(nextName(), b);
   positions.push(st); active = positions.length - 1; setTool('move'); syncForm(); update(copy && !!st.L);
   setHint(copy ? 'Copied and nudged 60 m east. Drag the ✥ handle to move it.' : 'New position added. Place its left end with the Left tool.', 6000);
@@ -1093,27 +1129,31 @@ function delPos() {
 $('posNew').onclick = () => newPos(false); $('posCopy').onclick = () => newPos(true); $('posDel').onclick = delPos;
 $('posSel').onchange = e => activate(+e.target.value);
 
-// ---------- TRPs
+// ---------- TRPs: one list shared by every position; angles are shown relative to the active position
+const covers = (p, t) => { const c = trpCalc(p, t); return !!c && c.lim && c.inside && (!c.max || c.dist <= c.max); };
 function renderTrps() {
-  const st = cur(), o = originOf(st);
-  $('trpList').innerHTML = !o ? '<div class="sub" style="margin-top:8px">Place the position first, then add TRPs.</div>'
-    : !st.trps.length ? '<div class="sub" style="margin-top:8px">No TRPs yet. Add one above or tap the map.</div>'
-    : st.trps.map((t, i) => {
-      const c = trpCalc(st, t), a = Math.abs(c.off), r = rngText(c), g = mgrsOf(t), s = secText(c);
+  const st = cur(), o = originOf(st), sectored = positions.filter(p => p.visible !== false && originOf(p) && limsOf(p)[0] + limsOf(p)[1] > 0.05);
+  $('trpFor').innerHTML = o ? `Showing angles from <b>${esc(st.name)}</b> (direction of fire ${d3(parseFloat(st.az) || 0)}°). TRPs are shared by all positions.` : 'Place a position to see angles. TRPs are shared by all positions.';
+  $('trpList').innerHTML = !trps.length ? '<div class="sub" style="margin-top:8px">No TRPs yet. Add one above or tap the map.</div>'
+    : trps.map((t, i) => {
+      const head = `<div class="top"><input type="text" data-name="${t.id}" value="${esc(t.name)}" maxlength="30" aria-label="TRP name"><button data-go="${t.id}" title="Zoom to this TRP">⌖</button><button data-del="${t.id}" title="Delete this TRP">✕</button></div>`;
+      if (!o) return `<div class="trpitem">${head}<div class="det">${mgrsOf(t) || fmtLL(t)}</div></div>`;
+      const c = trpCalc(st, t), a = Math.abs(c.off), r = rngText(c), g = mgrsOf(t), s2 = secText(c);
       const big = (a < 0.5 ? 'On axis' : `${a.toFixed(0)}° ${c.off > 0 ? 'right' : 'left'}`) + ` · ${Math.round(c.dist).toLocaleString()} m`;
       const cls = x => /OUTSIDE|BEYOND|behind/.test(x) ? 'flag' : 'okc';
-      return `<div class="trpitem"><div class="top"><input type="text" data-name="${t.id}" value="${esc(t.name)}" maxlength="30" aria-label="TRP name"><button data-go="${t.id}" title="Zoom to this TRP">⌖</button><button data-del="${t.id}" title="Delete this TRP">✕</button></div>
-        <div class="big">${i + 1}. ${big}</div>
-        <div class="det">Azimuth ${d3(c.brg)}° (${Math.round(nz(c.brg) * MIL)} mils)${a >= 0.5 ? ` · ${Math.round(a * MIL)} mils ${c.off > 0 ? 'right' : 'left'} of axis` : ''}${g ? '<br>' + g : ''}<br><span class="${c.lim ? cls(s) : ''}">${s}</span>${r ? `<br><span class="${cls(r)}">${r}</span>` : ''}${a > 90 ? '<br><span class="flag">Behind the firing line</span>' : ''}</div></div>`;
+      const by = sectored.filter(p => covers(p, t)).map(p => esc(p.name));
+      const cov = sectored.length > 1 || (sectored.length === 1 && sectored[0] !== st) ? (by.length ? `<br><span class="okc">Covered by: ${by.join(', ')}</span>` : '<br><span class="flag">Not covered by any sector</span>') : '';
+      return `<div class="trpitem">${head}<div class="big">${i + 1}. ${big}</div>
+        <div class="det">Azimuth ${d3(c.brg)}° (${Math.round(nz(c.brg) * MIL)} mils)${a >= 0.5 ? ` · ${Math.round(a * MIL)} mils ${c.off > 0 ? 'right' : 'left'} of axis` : ''}${g ? '<br>' + g : ''}<br><span class="${c.lim ? cls(s2) : ''}">${s2}</span>${r ? `<br><span class="${cls(r)}">${r}</span>` : ''}${a > 90 ? '<br><span class="flag">Behind the firing line</span>' : ''}${cov}</div></div>`;
     }).join('');
 }
 function addTrp(ll) {
-  const st = cur(); if (!originOf(st)) { setHint('Place the position first'); return; }
-  snap(); let n = st.trps.length + 1; while (st.trps.some(t => t.name === 'TRP ' + n)) n++;
-  st.trps.push({ id: ++uid, name: 'TRP ' + n, lat: ll.lat, lon: ll.lon }); update(); setHint(trpLine(st, st.trps[st.trps.length - 1]), 9000);
+  snap(); let n = trps.length + 1; while (trps.some(t => t.name === 'TRP ' + n)) n++;
+  trps.push({ id: ++uid, name: 'TRP ' + n, lat: ll.lat, lon: ll.lon }); update();
+  setHint(originOf(cur()) ? trpLine(cur(), trps[trps.length - 1]) : `TRP ${n} added`, 9000);
 }
-function delTrp(id) { snap(); const st = cur(); st.trps = st.trps.filter(t => t.id !== id); update(); }
-$('tMap').onclick = () => { if (!cur().L) { setHint('Place the position first (Left tool)'); return; } setTool('trp'); };
+function delTrp(id) { snap(); trps = trps.filter(t => t.id !== id); update(); }
+$('tMap').onclick = () => setTool('trp');
 $('tAddC').onclick = () => {
   const ll = MGRS.parseCoord($('tC').value.trim());
   if (!ll) { $('tC').classList.add('bad'); setHint('Not recognised. Use "lat, lon" or MGRS like 17S QV 12345 67890', 6000); return; }
@@ -1125,18 +1165,18 @@ $('tAddP').onclick = () => {
   if (az == null || d == null || d <= 0) { setHint('Enter an azimuth and a distance in meters', 5000); return; }
   addTrp(dest(o, az, d)); $('tAz').value = ''; $('tDist').value = '';
 };
-$('trpList').addEventListener('input', e => { const n = e.target.closest('[data-name]'); if (!n) return; const t = cur().trps.find(x => x.id === +n.dataset.name); if (t) { t.name = n.value || 'TRP'; scheduleSave(); drawSoon(); } });
+$('trpList').addEventListener('input', e => { const n = e.target.closest('[data-name]'); if (!n) return; const t = trps.find(x => x.id === +n.dataset.name); if (t) { t.name = n.value || 'TRP'; scheduleSave(); drawSoon(); } });
 $('trpList').addEventListener('click', e => {
   const d = e.target.closest('[data-del]'), g = e.target.closest('[data-go]');
-  if (d) delTrp(+d.dataset.del); else if (g && map) { const t = cur().trps.find(x => x.id === +g.dataset.go); if (t) map.setView([t.lat, t.lon], Math.max(map.getZoom(), 16)); }
+  if (d) delTrp(+d.dataset.del); else if (g && map) { const t = trps.find(x => x.id === +g.dataset.go); if (t) map.setView([t.lat, t.lon], Math.max(map.getZoom(), 16)); }
 });
-$('tClear').onclick = () => { const st = cur(); if (!st.trps.length) return; snap(); st.trps = []; update(); setHint('TRPs cleared (Undo brings them back)', 5000); };
+$('tClear').onclick = () => { if (!trps.length) return; snap(); trps = []; update(); setHint('TRPs cleared (Undo brings them back)', 5000); };
 function firePlanText(st) {
   const o = originOf(st), az = parseFloat(st.az) || 0, lL = parseFloat(st.limL) || 0, lR = parseFloat(st.limR) || 0, w = WPN[+st.wpn] ? WPN[+st.wpn].n : 'weapon';
   return [`FIRE PLAN - ${st.name}`, `Firing position: ${mgrsOf(o) || fmtLL(o)}`,
     `Direction of fire: ${d3(az)}° (${Math.round(nz(az) * MIL)} mils)` + (lL + lR > 0.05 ? `; left limit ${d3(az - lL)}°, right limit ${d3(az + lR)}°` : ''),
     ...(parseFloat(st.max) > 0 ? [`Max effective range (${w}): ${parseFloat(st.max)} m`] : []),
-    ...st.trps.map((t, i) => `${i + 1}. ${trpLine(st, t)}`), 'Angles are true azimuth, measured from the direction of fire. PLANNING AID - verify before use.'].join('\n');
+    ...trps.map((t, i) => `${i + 1}. ${trpLine(st, t)}`), 'Angles are true azimuth, measured from the direction of fire. PLANNING AID - verify before use.'].join('\n');
 }
 $('tCopy').onclick = () => {
   const st = cur(); if (!originOf(st)) { setHint('Place the position first'); return; }
@@ -1170,7 +1210,6 @@ function drawOthers() {
     const o = originOf(st), [lL, lR] = limsOf(st), az = parseFloat(st.az) || 0, r = parseFloat(st.max) > 0 ? parseFloat(st.max) : 600;
     if (lL + lR > 0.05) L.polygon(sectorPoly(o, az, lL, lR, r), { color: '#7ba7d9', weight: 1, fillOpacity: .06, interactive: false }).addTo(othersLayer);
     else L.polyline([ll2(o), ll2(dest(o, az, r))], { color: '#7ba7d9', weight: 1, dashArray: '4 4', interactive: false }).addTo(othersLayer);
-    st.trps.forEach(t => L.circleMarker(ll2(t), { radius: 5, color: '#fff', weight: 1, fillColor: '#1f6feb', fillOpacity: 1, interactive: false }).addTo(othersLayer));
     L.marker(ll2(st.L), { icon: L.divIcon({ className: '', html: `<div class="plbl">${esc(st.name)}</div>`, iconSize: [1, 1], iconAnchor: [0, 0] }), zIndexOffset: 100 }).on('click', () => activate(positions.indexOf(st))).addTo(othersLayer);
   });
 }
@@ -1193,7 +1232,7 @@ function draw() {
   });
   if (linePoly) { linePoly.remove(); linePoly = null; }
   if (want.M) linePoly = L.polyline([ll2(st.L), ll2(st.R)], { color: '#fff', weight: 3, dashArray: '6 6', interactive: false }).addTo(map);
-  drawAim(st, o); drawSector(st, o); drawTrps(st, o);
+  drawAim(st, o); drawSector(st, o); drawTrps(); drawOverlap();
 }
 function clearEnd(k) { snap(); const st = cur(); if (k === 'L' && st.R) { st.L = st.R; st.R = null; } else st[k] = null; if (!st.L) setTool('move'); syncForm(); update(); }
 function onDrag(k, ll) {
@@ -1250,16 +1289,17 @@ function drawSector(st, o) {
     [[az - lL], [az + lR]].forEach(([b]) => L.marker(ll2(dest(o, b, r * 1.06)), { interactive: false, keyboard: false, icon: L.divIcon({ className: '', html: `<div class="edge">${d3(b)}&deg;</div>`, iconSize: [1, 1] }) }).addTo(sectorLayer));
   } else if (maxSet) L.circle(ll2(o), { radius: r, color: '#e0302d', weight: 1, fillOpacity: .04, dashArray: '5 6', interactive: false }).addTo(sectorLayer);
 }
-function drawTrps(st, o) {
-  const list = o ? st.trps : [], ids = new Set(list.map(t => t.id));
+function drawTrps() {
+  const st = cur(), o = originOf(st), ids = new Set(trps.map(t => t.id));
   Object.keys(trpMk).forEach(k => { if (!ids.has(+k)) { trpMk[k].remove(); delete trpMk[k]; } });
   if (trpLines) { trpLines.remove(); trpLines = null; }
-  if (!list.length) return;
+  if (!trps.length) return;
   trpLines = L.layerGroup().addTo(map);
-  list.forEach((t, i) => {
-    const c = trpCalc(st, t), id = t.id, find = () => cur().trps.find(x => x.id === id), a = Math.abs(c.off), z = Math.round(PIN * .95);
-    L.polyline([ll2(o), ll2(t)], { color: c.lim && !c.inside ? '#e0302d' : '#1f6feb', weight: 2, dashArray: '3 5', interactive: false }).addTo(trpLines);
-    const icon = L.divIcon({ className: '', iconSize: [z, z], iconAnchor: [z / 2, z / 2], html: `<div class="pin trp">${i + 1}</div><div class="lbl">${esc(t.name)} · ${Math.round(c.dist)} m · ${a < 0.5 ? 'axis' : a.toFixed(0) + '°' + (c.off > 0 ? 'R' : 'L')}</div>` });
+  trps.forEach((t, i) => {
+    const c = o ? trpCalc(st, t) : null, id = t.id, find = () => trps.find(x => x.id === id), z = Math.round(PIN * .95);
+    if (c) L.polyline([ll2(o), ll2(t)], { color: c.lim && !c.inside ? '#e0302d' : '#1f6feb', weight: 2, dashArray: '3 5', interactive: false }).addTo(trpLines);
+    const a = c ? Math.abs(c.off) : 0, txt = c ? ` · ${Math.round(c.dist)} m · ${a < 0.5 ? 'axis' : a.toFixed(0) + '°' + (c.off > 0 ? 'R' : 'L')}` : '';
+    const icon = L.divIcon({ className: '', iconSize: [z, z], iconAnchor: [z / 2, z / 2], html: `<div class="pin trp">${i + 1}</div><div class="lbl">${esc(t.name)}${txt}</div>` });
     let m = trpMk[id];
     if (!m) {
       m = trpMk[id] = L.marker(ll2(t), { draggable: true, icon, zIndexOffset: 450 }).addTo(map);
@@ -1271,6 +1311,38 @@ function drawTrps(st, o) {
     } else if (!moving(m)) { m.setLatLng(ll2(t)); m.setIcon(icon); }
   });
 }
+// ---------- where do the sectors of fire overlap?
+let ovlLayer = null;
+const secRing = st => {                                           // closed [lon,lat] ring of a position's sector, or null if it has no area
+  const o = originOf(st), [lL, lR] = limsOf(st), max = parseFloat(st.max);
+  if (!o || !(lL + lR > 0.05) || !(max > 0)) return null;
+  const r = sectorPoly(o, parseFloat(st.az) || 0, lL, lR, max).map(p => [p[1], p[0]]); r.push(r[0]); return r;
+};
+function ringArea(r) {                                            // m^2, local flat-earth approximation (fine at these sizes)
+  const la0 = r[0][1], kx = R_E * rad(1) * Math.cos(rad(la0)), ky = R_E * rad(1); let a = 0;
+  for (let i = 0; i < r.length - 1; i++) a += (r[i][0] * kx) * (r[i + 1][1] * ky) - (r[i + 1][0] * kx) * (r[i][1] * ky);
+  return Math.abs(a) / 2;
+}
+const polyArea = poly => poly.reduce((s, ring, i) => s + (i ? -1 : 1) * ringArea(ring), 0);
+function computeOverlaps() {
+  const items = positions.filter(p => p.visible !== false).map(p => ({ p, ring: secRing(p) })).filter(x => x.ring), out = [];
+  for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+    let res = []; try { res = polygonClipping.intersection([items[i].ring], [items[j].ring]); } catch (e) { res = []; }
+    const area = res.reduce((s, poly) => s + polyArea(poly), 0);
+    if (area > 1) out.push({ a: items[i].p, b: items[j].p, polys: res, area, trps: trps.filter(t => covers(items[i].p, t) && covers(items[j].p, t)) });
+  }
+  return { out, n: items.length };
+}
+function drawOverlap() {
+  if (ovlLayer) { ovlLayer.remove(); ovlLayer = null; }
+  const { out, n } = computeOverlaps(), show = $('showOvl').checked;
+  $('ovl').innerHTML = n < 2 ? 'Overlap needs two or more positions that each have left/right limits and a max effective range.'
+    : !out.length ? `No overlap between the ${n} sectors.`
+    : out.map(x => `<b>${esc(x.a.name)}</b> and <b>${esc(x.b.name)}</b>: ${Math.round(x.area).toLocaleString()} m² overlap` + (x.trps.length ? `<br>TRPs covered by both: ${x.trps.map(t => esc(t.name)).join(', ')}` : '<br>No TRP inside the overlap')).join('<br><br>');
+  if (!show || !out.length) return;
+  ovlLayer = L.layerGroup().addTo(map);
+  out.forEach(x => x.polys.forEach(poly => L.polygon(poly.map(r => r.map(q => [q[1], q[0]])), { color: '#ffb000', weight: 2, fillColor: '#ffb000', fillOpacity: .5, interactive: false }).addTo(ovlLayer)));
+}
 function lineInfo() {
   const st = cur(), el = $('lineinfo');
   if (!st.L || !st.R || isSingle(st)) { el.textContent = ''; return; }
@@ -1278,7 +1350,7 @@ function lineInfo() {
 }
 function fit() {
   const st = cur(), o = originOf(st); if (!o || !map) { setHint('Place the position first'); return; }
-  const pts = [o, ...(st.L ? [st.L] : []), ...(st.R ? [st.R] : []), ...st.trps];
+  const pts = [o, ...(st.L ? [st.L] : []), ...(st.R ? [st.R] : []), ...trps];
   map.fitBounds(L.latLngBounds(pts.map(ll2)).extend(L.latLng(o.lat, o.lon).toBounds(sectorRadius(st) * 1.1)), { maxZoom: 17, padding: [30, 30] });
 }
 function update(doFit) {
@@ -1293,8 +1365,8 @@ function mapClick(ll) {
     snap(); setPoint(tool, p); const was = tool;
     setTool(was === 'L' && !st.R && !st.single ? 'R' : 'move'); update(); return;
   }
-  if (!originOf(st)) { setHint('Place the position first (Left tool)'); return; }
   if (tool === 'trp') { addTrp(p); return; }
+  if (!originOf(st)) { setHint('Place the position first (Left tool)'); return; }
   if (tool === 'dir') { snap(); st.az = inv(originOf(st), p).bearing.toFixed(1); $('az').value = st.az; setTool('move'); update(); return; }
   if (tool === 'limL' || tool === 'limR') { snap(); setLimit(tool === 'limL' ? 'L' : 'R', inv(originOf(st), p).bearing); setTool('move'); update(); }
 }
@@ -1336,16 +1408,14 @@ function kmlFolder(st) {
     const ring = sectorPoly(o, az, lL, lR, max).map(p => kc({ lat: p[0], lon: p[1] })); ring.push(ring[0]);
     k += pm(st.name + ' - sector of fire', `Azimuth ${d3(az - lL)} to ${d3(az + lR)} deg true, to ${max} m`, `<Polygon><outerBoundaryIs><LinearRing><coordinates>${ring.join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon>`, 'sector');
   } else k += pm(st.name + ' - direction of fire', `Azimuth ${d3(az)} deg true`, `<LineString><coordinates>${kc(o)} ${kc(dest(o, az, max || 500))}</coordinates></LineString>`, 'dir');
-  st.trps.forEach(t => {
-    k += pm(st.name + ' - ' + t.name, trpLine(st, t), `<Point><coordinates>${kc(t)}</coordinates></Point>`);
-    k += pm(st.name + ' - ' + t.name + ' line', '', `<LineString><coordinates>${kc(o)} ${kc(t)}</coordinates></LineString>`, 'line');
-  });
+  trps.forEach(t => k += pm(st.name + ' to ' + t.name, trpLine(st, t), `<LineString><coordinates>${kc(o)} ${kc(t)}</coordinates></LineString>`, 'line'));
   return k + '</Folder>\n';
 }
 function kmlDoc(list, name) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n<name>${kx(name)}</name>\n<description>PLANNING AID. Angles are true azimuth from the direction of fire.</description>\n` +
     '<Style id="line"><LineStyle><color>ffffffff</color><width>2</width></LineStyle></Style>\n<Style id="dir"><LineStyle><color>ff2d30e0</color><width>3</width></LineStyle></Style>\n' +
-    '<Style id="sector"><LineStyle><color>ff2d30e0</color><width>2</width></LineStyle><PolyStyle><color>402d30e0</color></PolyStyle></Style>\n' + list.map(kmlFolder).join('') + '</Document></kml>\n';
+    '<Style id="sector"><LineStyle><color>ff2d30e0</color><width>2</width></LineStyle><PolyStyle><color>402d30e0</color></PolyStyle></Style>\n' +
+    (trps.length ? `<Folder><name>TRPs</name>\n${trps.map(t => `<Placemark><name>${kx(t.name)}</name><description>${kx(mgrsOf(t) || fmtLL(t))}</description><Point><coordinates>${kc(t)}</coordinates></Point></Placemark>\n`).join('')}</Folder>\n` : '') + list.map(kmlFolder).join('') + '</Document></kml>\n';
 }
 function saveFile(text, fname, type) { const el = document.createElement('a'); el.href = URL.createObjectURL(new Blob([text], { type })); el.download = fname; el.click(); }
 $('kml').onclick = () => {
@@ -1360,14 +1430,14 @@ $('kml').onclick = () => {
 
 // ---------- save, open, autosave
 let saveT = 0;
-function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify({ v: 1, positions, active })); } catch (e) { /* private mode / storage full */ } }, 250); }
-$('pSave').onclick = () => { saveFile(JSON.stringify({ app: 'fire-planner', v: 1, positions, active }, null, 1), `FirePlan_project_${positions.length}_positions.json`, 'application/json'); setHint('Project saved. Open it on another device with "Open project".', 6000); };
+function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify({ v: 2, positions, trps, active })); } catch (e) { /* private mode / storage full */ } }, 250); }
+$('pSave').onclick = () => { saveFile(JSON.stringify({ app: 'fire-planner', v: 2, positions, trps, active }, null, 1), `FirePlan_project_${positions.length}_positions.json`, 'application/json'); setHint('Project saved. Open it on another device with "Open project".', 6000); };
 $('pOpen').onclick = () => $('pFile').click();
 $('pFile').onchange = e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   f.text().then(t => {
     const o = JSON.parse(t); if (!o || !Array.isArray(o.positions) || !o.positions.length) throw new Error('no positions');
-    snap(); positions = o.positions.map(clean); active = Math.min(Math.max(0, +o.active || 0), positions.length - 1); syncForm(); othersSig = ''; update(true);
+    snap(); ({ positions, trps, active } = loadProject(o)); syncForm(); othersSig = ''; update(true);
     setHint(`Opened ${positions.length} position${positions.length > 1 ? 's' : ''} (Undo restores the previous project)`, 7000);
   }).catch(() => setHint('That file is not a Fire Planner project.', 6000));
 };
@@ -1391,7 +1461,7 @@ function boot() {
   try { applyTheme(localStorage.getItem(THEME_KEY) || 'auto'); } catch (e) { applyTheme('auto'); }
   let saved = null; try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { /* ignore */ }
   let restored = false;
-  if (saved && Array.isArray(saved.positions) && saved.positions.length) { positions = saved.positions.map(clean); active = Math.min(Math.max(0, +saved.active || 0), positions.length - 1); restored = true; }
+  if (saved && Array.isArray(saved.positions) && saved.positions.length) { ({ positions, trps, active } = loadProject(saved)); restored = true; }
   else positions = [blank('SBF 1')];
   syncForm(); initMap(); update(restored && !!cur().L);
   setTimeout(() => { if (map) map.invalidateSize(); }, 250);
