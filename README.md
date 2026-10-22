@@ -5,7 +5,7 @@ A browser tool for planning support-by-fire positions, sectors of fire and targe
 This is a **tactical planning aid**. It is not a range safety tool: it does not draw surface danger zones. For live-fire safety use a separate range safety tool such as [sdz-planner](https://github.com/mickeeygee/sdz-planner).
 
 ## Use it
-Open `index.html` (or the hosted page). Place the left and right ends of a position on the map, or a single point. Type lat/lon or MGRS, tap the map, or use your GPS. Set the azimuth of the direction of fire and the left and right limits. Add TRPs by tapping the map, typing a coordinate, or entering an azimuth and distance. Each TRP shows:
+Open `index.html` (or the hosted page). Place each position as a single point. Type lat/lon or MGRS, tap the map, or use your GPS. Set the azimuth of the direction of fire and the left and right limits. Add TRPs by tapping the map, typing a coordinate, or entering an azimuth and distance. Each TRP shows:
 
 - distance, azimuth in degrees and mils
 - how many degrees (and mils) it is left or right of the direction of fire
@@ -26,7 +26,7 @@ Everything is stored in your own browser. Nothing is sent to any server (map pic
 The map fills the screen and the controls sit in a bottom sheet. Drag the handle up for the full controls (Setup, TRPs, More) and down to a compact bar with big one-tap buttons: **Use my location** or **Place on map** to start, then **Add TRP**, **Aim**, **Undo**, **GPS** and **More**. Turned sideways, the controls become a panel on the right.
 
 ## Things to know
-- Angles are measured from the direction of fire at the middle of the position, in true degrees (no grid or magnetic correction). 6400 mils per circle.
+- Angles are measured from the direction of fire at the position, in true degrees (no grid or magnetic correction). 6400 mils per circle.
 - Weapon ranges are typical published figures, not authoritative. Check them against the weapon manual and your unit SOP. The range box is editable.
 
 ## Planned
