@@ -197,6 +197,7 @@
     <button data-tool="limL" title="Set the left limit of fire">L lim</button>
     <button data-tool="limR" title="Set the right limit of fire">R lim</button>
     <button data-tool="del" title="Click a pin to delete it">Delete</button>
+    <button id="tView" title="Hide the arrows for a clearer map (the fan and lines stay)">Clear view</button>
     <button id="tUndo" title="Undo (Ctrl+Z)">Undo</button>
     <button id="tGps" title="Show my live GPS position">GPS</button>
     <button id="tFit" title="Zoom to this position">Fit</button>
@@ -274,7 +275,8 @@ const wpnOf = v => (v === '' || v == null) ? null : (WPN[+v] || null);
 $('wpn').innerHTML = '<option value="">Custom / none</option>' + WPN.map((w, i) => `<option value="${i}">${w.n} (${w.pt}/${w.ar})</option>`).join('');
 
 // ---------- state: a list of positions; the form edits positions[active]
-const KEY = 'firePlanner.v1', THEME_KEY = 'firePlanner.theme';
+const KEY = 'firePlanner.v1', THEME_KEY = 'firePlanner.theme', VIEW_KEY = 'firePlanner.clearView';
+let clearView = false;                                              // true hides the aim and limit arrows (the fan and lines stay)
 let positions = [], trps = [], active = 0, uid = 0, tool = 'move', map = null;   // TRPs and assault lines are shared by every position
 let assaults = [], assaultMargin = '15', placingAs = null;   // assault lines: {id, name, A, B}
 const blank = (name, from) => ({ id: ++uid, name, visible: true, L: null, az: '0', limL: '0', limR: '0', wpn: from ? from.wpn : '', max: from ? from.max : '', hA: null, hL: null, hR: null });   // hA/hL/hR: how far along its line each handle sits (m); null = automatic
@@ -565,7 +567,8 @@ const limIcon = side => L.divIcon({ className: '', html: `<div class="pin lim" t
 function drawAim(st, o) {
   if (!o) { ['A', 'limL', 'limR'].forEach(k => { if (mk[k]) { mk[k].remove(); mk[k] = null; } }); if (aimLine) { aimLine.remove(); aimLine = null; } return; }
   const az = parseFloat(st.az) || 0, hp = dest(o, az, handleDist(st, 'A', o));
-  if (!mk.A) {
+  if (clearView) { ['A', 'limL', 'limR'].forEach(k => { if (mk[k]) { mk[k].remove(); mk[k] = null; } }); }
+  else if (!mk.A) {
     mk.A = L.marker(ll2(hp), { draggable: true, icon: aimIcon(az), zIndexOffset: 600 }).addTo(map);
     mk.A.on('dragstart', snap);
     mk.A.on('drag', e => { const ll = e.target.getLatLng(), v = inv(originOf(cur()), { lat: ll.lat, lon: ll.lng }), b = v.bearing; cur().az = (Math.round(b * 10) / 10 % 360).toFixed(1); cur().hA = v.dist; $('az').value = cur().az; const el = mk.A.getElement(); if (el && el.firstChild) el.firstChild.style.transform = `rotate(${b}deg)`; renderTrps(); drawSoon(); });
@@ -573,6 +576,7 @@ function drawAim(st, o) {
   } else if (!moving(mk.A)) { mk.A.setLatLng(ll2(hp)); mk.A.setIcon(aimIcon(az)); }
   if (aimLine) aimLine.remove();
   aimLine = L.polyline([ll2(o), ll2(hp)], { color: '#e0302d', weight: 2, dashArray: '4 4', interactive: false }).addTo(map);
+  if (clearView) return;
   [['L', st.az - limsOf(st)[0], 1.3], ['R', +st.az + limsOf(st)[1], 1.6]].forEach(([side, ab, f]) => {
     const k = 'lim' + side, hpl = dest(o, ab, handleDist(st, side, o));
     if (!mk[k]) {
@@ -785,6 +789,12 @@ function mapClick(ll) {
   if (tool === 'limL' || tool === 'limR') { snap(); setLimit(tool === 'limL' ? 'L' : 'R', inv(originOf(st), p).bearing); setTool('move'); update(); }
 }
 document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool === tool && tool !== 'move' ? 'move' : b.dataset.tool));
+function setClearView(on, quiet) {
+  clearView = !!on; try { localStorage.setItem(VIEW_KEY, clearView ? '1' : '0'); } catch (e) { /* ignore */ }
+  $('tView').classList.toggle('active', clearView); $('tView').textContent = clearView ? 'Show arrows' : 'Clear view';
+  if (map) draw(); renderSheet(); if (!quiet) setHint(clearView ? 'Clear view: arrows hidden. The fan and lines stay.' : 'Arrows shown', 3500);
+}
+$('tView').onclick = () => setClearView(!clearView);
 $('tUndo').onclick = undo; $('tFit').onclick = fit;
 document.addEventListener('keydown', e => {
   const ae = document.activeElement, typing = /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) && ae.type !== 'checkbox';
@@ -869,6 +879,7 @@ const ICON = {
   dir: '<svg viewBox="0 0 24 24"><path d="M12 3l6 14-6-3-6 3z"/></svg>',
   undo: '<svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12"/></svg>',
   done: '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>',
+  eye: '<svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
   more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>'
 };
 const sheetPx = st => { const top = $('sheetTop').offsetHeight; return st === 'peek' ? top : st === 'half' ? Math.max(top + 240, Math.round(innerHeight * .56)) : Math.round(innerHeight * .88); };
@@ -909,14 +920,14 @@ function renderSheet() {
   const state = actionState(), B = (act, icon, label, cls) => `<button data-act="${act}" class="${cls || ''}">${icon}<span>${label}</span></button>`;
   $('actRow').className = state === 'main' ? '' : 'big';
   $('actRow').innerHTML = state === 'start' ? B('gps-L', ICON.gps, 'Use my location', 'primary') + B('place-L', ICON.pin, 'Place on map')
-    : (['trp', 'asA', 'asB'].includes(tool) ? B('done', ICON.done, 'Done', 'on') : B('dir', ICON.dir, 'Aim', tool === 'dir' ? 'on' : 'primary')) + B('undo', ICON.undo, 'Undo') + B('gps', ICON.gps, 'GPS', gpsWatch != null ? 'on' : '') + B('more', ICON.more, 'More');
+    : (['trp', 'asA', 'asB'].includes(tool) ? B('done', ICON.done, 'Done', 'on') : B('dir', ICON.dir, 'Aim', tool === 'dir' ? 'on' : 'primary')) + B('view', ICON.eye, clearView ? 'Show arrows' : 'Clear view', clearView ? 'on' : '') + B('undo', ICON.undo, 'Undo') + B('gps', ICON.gps, 'GPS', gpsWatch != null ? 'on' : '') + B('more', ICON.more, 'More');
   setSheet(sheetState, false, true);
 }
 $('actRow').onclick = e => {
   const b = e.target.closest('button[data-act]'); if (!b) return; const k = b.dataset.act;
   if (k === 'gps-L') useLocation('L');
   else if (k === 'place-L') setTool('L');
-  else if (k === 'done') setTool('move'); else if (k === 'dir') setTool(tool === 'dir' ? 'move' : 'dir');
+  else if (k === 'view') setClearView(!clearView); else if (k === 'done') setTool('move'); else if (k === 'dir') setTool(tool === 'dir' ? 'move' : 'dir');
   else if (k === 'undo') undo(); else if (k === 'gps') { $('tGps').click(); renderSheet(); }
   else if (k === 'more') openMenu($('moremenu'), b);
 };
@@ -981,6 +992,8 @@ function boot() {
   let restored = false;
   if (saved && Array.isArray(saved.positions) && saved.positions.length) { ({ positions, trps, assaults, assaultMargin, active } = loadProject(saved)); restored = true; }
   else positions = [blank('SBF 1')];
+  try { clearView = localStorage.getItem(VIEW_KEY) === '1'; } catch (e) { /* ignore */ }
+  $('tView').classList.toggle('active', clearView); $('tView').textContent = clearView ? 'Show arrows' : 'Clear view';
   syncForm(); applyPhone(); initMap(); update(restored && !!cur().L);
   setTimeout(() => { if (map) map.invalidateSize(); }, 250);
   if (restored) setHint(`Restored ${positions.length} position${positions.length > 1 ? 's' : ''} from your last session`, 6000);
