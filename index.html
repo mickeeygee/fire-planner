@@ -788,7 +788,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <select id="posSel" aria-label="Position"></select>
         <input type="text" id="p-name" hidden maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Position name">
         <button id="p-edit" aria-label="Rename position"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button>
-        <button id="p-new" aria-label="New position"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button id="p-new" aria-label="Add a position or assault line"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
         <span id="draft" class="phone-only" title="Planning aid only. Confirm ranges against your manual and SOP.">PLANNING<br>AID</span>
       </div>
       <div id="sumText" class="phone-only"></div>
@@ -829,11 +829,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <div class="row"><button id="tCopy">Copy fire plan</button><button id="tClear">Clear all TRPs</button></div>
   </section>
   <section data-sec="assault">
-    <h2>Assault line</h2>
-    <div class="sub">Mark the two ends of the assaulting element. Fire is kept a set number of degrees off the line, measured at each position, from whichever troop is closest to that position's sector. The button below fixes the position selected at the top.</div>
-    <div class="row"><div><label>Keep fire at least (&deg;) off the line</label><input type="number" id="asMargin" min="0" max="89" step="any" value="15"></div><div><label>&nbsp;</label><button id="asPlace" class="primary" style="width:100%">Place assault line</button></div></div>
+    <h2>Assault lines</h2>
+    <div class="sub">An assault line marks the two ends of an assaulting element. Fire is kept a set number of degrees off every line, measured at each position, from whichever troop is closest to that position's sector. Add lines with + at the top.</div>
+    <div class="row"><div><label>Keep fire at least (&deg;) off the lines</label><input type="number" id="asMargin" min="0" max="89" step="any" value="15"></div><div><label>&nbsp;</label><button id="asPlace" class="primary" style="width:100%">Add assault line</button></div></div>
+    <div id="asList"></div>
     <div id="asInfo" class="sub" style="margin-top:8px"></div>
-    <div class="row"><button id="asKeep">Keep this position 15&deg; off the line</button><button id="asClear">Clear assault line</button></div>
+    <button id="asKeep" style="width:100%;margin-top:8px">Keep this position 15&deg; off the lines</button>
   </section>
   <section data-sec="more">
     <div class="banner phone-only"><b>Planning aid only.</b> Angles are true azimuth, no grid or magnetic correction. Weapon ranges are typical published figures: confirm them against your manual and unit SOP. For live-fire safety zones use a separate range safety tool.</div>
@@ -858,7 +859,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     <button data-tool="limL" title="Set the left limit of fire">L lim</button>
     <button data-tool="limR" title="Set the right limit of fire">R lim</button>
     <button data-tool="trp" title="Place TRPs">TRP</button>
-    <button data-tool="asA" title="Place the assault line">Assault</button>
+    <button data-tool="asA" title="Add an assault line">Assault</button>
     <button data-tool="del" title="Click a pin to delete it">Delete</button>
     <button id="tUndo" title="Undo (Ctrl+Z)">Undo</button>
     <button id="tGps" title="Show my live GPS position">GPS</button>
@@ -869,9 +870,13 @@ svg.leaflet-image-layer.leaflet-interactive path {
 </div>
 </div>
 
+<div id="newmenu" class="menu">
+  <button data-n="pos">New SBF position</button>
+  <button data-n="asl">New assault line</button>
+</div>
 <div id="moremenu" class="menu">
-  <button data-m="asl">Place assault line</button>
-  <button data-m="asKeep">Keep fire off the assault line</button>
+  <button data-m="asl">Add assault line</button>
+  <button data-m="asKeep">Keep fire off the assault lines</button>
   <button data-m="limL">Set left limit of fire</button>
   <button data-m="limR">Set right limit of fire</button>
   <button data-m="del">Delete pins</button>
@@ -1035,8 +1040,8 @@ $('wpn').innerHTML = '<option value="">Custom / none</option>' + WPN.map((w, i) 
 
 // ---------- state: a list of positions; the form edits positions[active]
 const KEY = 'firePlanner.v1', THEME_KEY = 'firePlanner.theme';
-let positions = [], trps = [], active = 0, uid = 0, tool = 'move', map = null;   // TRPs and the assault line are shared by every position
-let assault = { A: null, B: null, margin: '15' };
+let positions = [], trps = [], active = 0, uid = 0, tool = 'move', map = null;   // TRPs and assault lines are shared by every position
+let assaults = [], assaultMargin = '15', placingAs = null;   // assault lines: {id, name, A, B}
 const blank = (name, from) => ({ id: ++uid, name, visible: true, L: null, az: '0', limL: '0', limR: '0', wpn: from ? from.wpn : '', max: from ? from.max : '' });
 const cur = () => positions[active];
 const originOf = st => st && st.L ? st.L : null;                  // a position is one point (stored as L so older project files still open)
@@ -1055,17 +1060,19 @@ const cleanTrps = arr => (Array.isArray(arr) ? arr : []).map(t => ({ id: ++uid, 
 function loadProject(o) {                                         // older saves kept TRPs inside each position: merge them, dropping duplicates
   const pos = o.positions.map(clean); let t = cleanTrps(o.trps);
   if (!Array.isArray(o.trps)) { const seen = new Set(); o.positions.forEach(p => cleanTrps(p && p.trps).forEach(x => { const k = x.lat.toFixed(6) + ',' + x.lon.toFixed(6); if (!seen.has(k)) { seen.add(k); t.push(x); } })); }
-  const as = o.assault || {}, m = parseFloat(as.margin);
-  return { positions: pos, trps: t, assault: { A: llOk(as.A), B: llOk(as.B), margin: m >= 0 && m < 90 ? String(m) : '15' }, active: Math.min(Math.max(0, +o.active || 0), pos.length - 1) };
+  const mm = parseFloat(o.assaultMargin != null ? o.assaultMargin : (o.assault && o.assault.margin));
+  const raw = Array.isArray(o.assaults) ? o.assaults : (o.assault && o.assault.A && o.assault.B ? [{ name: 'Assault 1', A: o.assault.A, B: o.assault.B }] : []);   // older files had a single line
+  const lines = raw.map(l => ({ id: ++uid, name: String((l && l.name) || 'Assault').slice(0, 30), A: llOk(l && l.A), B: llOk(l && l.B) })).filter(l => l.A && l.B).slice(0, 20);
+  return { positions: pos, trps: t, assaults: lines, assaultMargin: mm >= 0 && mm < 90 ? String(mm) : '15', active: Math.min(Math.max(0, +o.active || 0), pos.length - 1) };
 }
 
 // ---------- undo (whole project)
 const hist = [];
-const snapStr = () => JSON.stringify({ positions, trps, assault, active });
+const snapStr = () => JSON.stringify({ positions, trps, assaults, assaultMargin, active });
 function snap() { const s = snapStr(); if (hist[hist.length - 1] !== s) { hist.push(s); if (hist.length > 80) hist.shift(); } }
 function undo() {
   const s = hist.pop(); if (!s) { setHint('Nothing to undo'); return; }
-  const o = JSON.parse(s); positions = o.positions; trps = o.trps || []; assault = o.assault || { A: null, B: null, margin: '15' }; active = Math.min(o.active, positions.length - 1);
+  const o = JSON.parse(s); positions = o.positions; trps = o.trps || []; assaults = o.assaults || []; assaultMargin = o.assaultMargin || '15'; active = Math.min(o.active, positions.length - 1);
   syncForm(); update(); setHint('Undone');
 }
 
@@ -1095,10 +1102,13 @@ function trpLine(st, t) {
 // ---------- hints, theme, tabs
 let hintT = 0;
 function setHint(t, ms) { $('hint').textContent = t || ''; clearTimeout(hintT); if (t && tool === 'move') hintT = setTimeout(() => { if (tool === 'move') $('hint').textContent = ''; }, ms || 4000); }
-const HINTS = { L: 'Click the map to place the position', asA: 'Click the map for one end of the assault line', asB: 'Click the map for the other end of the assault line', dir: 'Click the map in the direction of fire',
+const HINTS = { L: 'Click the map to place the position', asA: 'Click the map for one end of the new assault line', asB: 'Click the map for the other end of the assault line', dir: 'Click the map in the direction of fire',
   limL: 'Click the map in the direction of the LEFT limit of fire', limR: 'Click the map in the direction of the RIGHT limit of fire', trp: 'Click the map to place a TRP. Press Esc when finished', del: 'Click a pin to delete it' };
 const verb = t => TOUCH ? t.replace(/^Click/, 'Tap') : t;
 function setTool(t) {
+  if (t !== 'asB' && placingAs != null) {                          // a half-placed assault line is dropped
+    const n = assaults.length; assaults = assaults.filter(x => x.id !== placingAs || x.B); placingAs = null; if (assaults.length !== n) update();
+  }
   tool = t;
   document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
   if (map) map.getContainer().style.cursor = ['L', 'dir', 'limL', 'limR', 'trp', 'asA', 'asB'].includes(t) ? 'crosshair' : '';
@@ -1196,7 +1206,8 @@ function delPos() {
   active = Math.min(active, positions.length - 1); setTool('move'); syncForm(); othersSig = ''; update();
   setHint(`Deleted "${nm}" (Undo brings it back)`, 6000);
 }
-$('p-new').onclick = () => { newPos(false); if (isPhone()) editName(true); }; $('posCopy').onclick = () => newPos(true); $('posDel').onclick = delPos;
+$('p-new').onclick = () => openMenu($('newmenu'), $('p-new'));
+$('newmenu').onclick = e => { const b = e.target.closest('button[data-n]'); if (!b) return; closeMenus(); if (b.dataset.n === 'pos') { newPos(false); if (isPhone()) editName(true); } else startAssault(); }; $('posCopy').onclick = () => newPos(true); $('posDel').onclick = delPos;
 $('posSel').onchange = e => activate(+e.target.value);
 
 // ---------- TRPs: one list shared by every position; angles are shown relative to the active position
@@ -1405,7 +1416,7 @@ function drawOverlap() {
 }
 function fit() {
   const st = cur(), o = originOf(st); if (!o || !map) { setHint('Place the position first'); return; }
-  const pts = [o, ...trps, ...(assault.A ? [assault.A] : []), ...(assault.B ? [assault.B] : [])];
+  const pts = [o, ...trps, ...assaults.flatMap(l => [l.A, l.B].filter(Boolean))];
   const r = parseFloat(st.max) > 0 ? parseFloat(st.max) : 500;      // fixed size: the on-screen default radius depends on the current zoom
   map.fitBounds(L.latLngBounds(pts.map(ll2)).extend(L.latLng(o.lat, o.lon).toBounds(r * 1.1)), { maxZoom: 17, padding: [30, 30] });
 }
@@ -1414,83 +1425,107 @@ function update(doFit) {
   if (doFit === true) fit();
 }
 
-// ---------- assault line: keep direct fire a set number of degrees off the friendly assault element
-const marginDeg = () => { const m = parseFloat(assault.margin); return m >= 0 ? m : 15; };
+// ---------- assault lines: keep direct fire a set number of degrees off each friendly assault element
+const marginDeg = () => { const m = parseFloat(assaultMargin); return m >= 0 ? m : 15; };
 const cw = (x, y) => nz(y - x);                                    // clockwise degrees from bearing x to bearing y
-function assaultSpan(o) {                                           // bearings from a position to the two ends of the line
-  if (!o || !assault.A || !assault.B) return null;
-  const a = inv(o, assault.A), b = inv(o, assault.B), d = off180(b.bearing - a.bearing), w = Math.abs(d);
-  return { lo: d >= 0 ? a.bearing : b.bearing, width: w, hi: (d >= 0 ? a.bearing : b.bearing) + w, far: Math.max(a.dist, b.dist), on: w > 175 };
+const doneLines = () => assaults.filter(l => l.A && l.B);
+function assaultSpan(o, line) {                                     // bearings from a position to the two ends of a line
+  if (!o || !line || !line.A || !line.B) return null;
+  const a = inv(o, line.A), b = inv(o, line.B), d = off180(b.bearing - a.bearing), w = Math.abs(d), lo = d >= 0 ? a.bearing : b.bearing;
+  return { lo, width: w, hi: lo + w, far: Math.max(a.dist, b.dist), on: w > 175 };
 }
 const inArc = (x, a0, w) => cw(a0, x) <= w + 1e-9;
-function clearance(st) {                                            // degrees between the sector and the assault line as seen from the position; 0 = fire crosses it
-  const o = originOf(st), sp = assaultSpan(o); if (!sp) return null;
+function clearance(st, line) {                                      // degrees between the sector and one assault line as seen from the position; 0 = fire crosses it
+  const o = originOf(st), sp = assaultSpan(o, line); if (!sp) return null;
   const [lL, lR] = limsOf(st), a0 = (parseFloat(st.az) || 0) - lL, w = lL + lR;
-  if (sp.on || inArc(a0, sp.lo, sp.width) || inArc(sp.lo, a0, w)) return { deg: 0, sp, side: null };
+  if (sp.on || inArc(a0, sp.lo, sp.width) || inArc(sp.lo, a0, w)) return { deg: 0, sp, side: null, line };
   const g1 = cw(a0 + w, sp.lo), g2 = cw(sp.hi, a0);                 // sector then line (clockwise) / line then sector
-  return { deg: Math.min(g1, g2), sp, side: g2 <= g1 ? 'cw' : 'ccw' };
+  return { deg: Math.min(g1, g2), sp, side: g2 <= g1 ? 'cw' : 'ccw', line };
 }
-const asText = (st, c) => `${c.deg.toFixed(0)}° (${Math.round(c.deg * MIL)} mils) off the assault line`;
+const clearances = st => doneLines().map(l => clearance(st, l)).filter(Boolean);
+const worstClear = st => { const all = clearances(st); return all.length ? all.reduce((a, b) => b.deg < a.deg ? b : a) : null; };
+const asText = c => `${c.deg.toFixed(0)}° (${Math.round(c.deg * MIL)} mils) off ${c.line.name}`;
 function assaultPlanLines(st) {
-  const c = clearance(st); if (!c) return [];
-  const m = marginDeg(), ok = c.deg >= m - 0.05;
-  return [`Assault line: ${mgrsOf(assault.A) || fmtLL(assault.A)} to ${mgrsOf(assault.B) || fmtLL(assault.B)}; line spans ${d3(c.sp.lo)}°-${d3(c.sp.hi)}° from this position`,
-    `Sector is ${asText(st, c)} (${m}° required): ${ok ? 'OK' : 'TOO CLOSE'}`];
+  const m = marginDeg();
+  return clearances(st).flatMap(c => [`${c.line.name}: ${mgrsOf(c.line.A) || fmtLL(c.line.A)} to ${mgrsOf(c.line.B) || fmtLL(c.line.B)}; spans ${d3(c.sp.lo)}°-${d3(c.sp.hi)}° from this position`,
+    `Sector is ${asText(c)} (${m}° required): ${c.deg >= m - 0.05 ? 'OK' : 'TOO CLOSE'}`]);
 }
+let asSig = '';
 function renderAssault() {
-  const A = assault, m = marginDeg();
-  if (document.activeElement !== $('asMargin')) $('asMargin').value = A.margin;
-  $('asKeep').textContent = `Keep ${cur().name} ${m}° off the line`;
+  const m = marginDeg(), done = doneLines();
+  if (document.activeElement !== $('asMargin')) $('asMargin').value = assaultMargin;
+  $('asKeep').textContent = `Keep ${cur().name} ${m}° off the lines`; $('asKeep').disabled = !done.length;
+  const sig = assaults.map(l => l.id + (l.B ? 'b' : 'a')).join(',');
+  if (sig !== asSig) {                                              // rebuild the list only when lines are added or removed (so typing a name keeps focus)
+    asSig = sig;
+    $('asList').innerHTML = assaults.length ? assaults.map(l => `<div class="trpitem"><div class="top"><input type="text" data-asname="${l.id}" value="${esc(l.name)}" maxlength="30" aria-label="Assault line name"><button data-asgo="${l.id}" title="Zoom to this assault line">⌖</button><button data-asdel="${l.id}" title="Delete this assault line">✕</button></div>${l.B ? '' : '<div class="det">Tap the second end on the map.</div>'}</div>`).join('')
+      : '<div class="sub" style="margin-top:8px">No assault lines yet. Tap + at the top and choose "New assault line", or use the button above.</div>';
+  }
   const listed = positions.filter(p => p.visible !== false && originOf(p));
-  $('asInfo').innerHTML = !A.A ? 'No assault line yet. Tap "Place assault line", then the two ends on the map.'
-    : !A.B ? 'Tap the second end of the assault line on the map.'
-    : !listed.length ? 'Place a position to check it against the assault line.'
-    : listed.map(p => {
-      const c = clearance(p), cur_ = p === cur(), ok = c.deg >= m - 0.05, nm = cur_ ? `<b>${esc(p.name)}</b>` : esc(p.name);
-      return `${nm}: line spans ${d3(c.sp.lo)}°–${d3(c.sp.hi)}°${c.sp.on ? ' (position is on the line)' : ''}<br><span class="${ok ? 'okc' : 'flag'}">${c.deg < 0.05 ? 'Fire crosses the assault line' : asText(p, c)}${ok ? ' ✓' : ` – need ${m}°`}</span>`;
-    }).join('<br>');
+  $('asInfo').innerHTML = !done.length ? '' : !listed.length ? 'Place a position to check it against the assault lines.'
+    : listed.map(p => (p === cur() ? `<b>${esc(p.name)}</b>` : esc(p.name)) + clearances(p).map(c => {
+      const ok = c.deg >= m - 0.05;
+      return `<br><span class="${ok ? 'okc' : 'flag'}">${esc(c.line.name)}: ${c.deg < 0.05 ? 'fire crosses the line' : c.deg.toFixed(0) + '° (' + Math.round(c.deg * MIL) + ' mils) off'}${ok ? ' ✓' : ` – need ${m}°`}${c.sp.on ? ' (position is on the line)' : ''}</span>`;
+    }).join('')).join('<br><br>');
 }
-function keepOff() {                                                // pull the sector edge nearest the line out to the required angle
-  const st = cur(), c = clearance(st), m = marginDeg();
-  if (!c) { setHint(assault.A && assault.B ? 'Place the position first' : 'Place the assault line first'); return; }
-  if (c.deg >= m - 0.05) { setHint(`Already ${c.deg.toFixed(0)}° off the assault line (need ${m}°)`, 5000); return; }
-  snap();
-  const [lL, lR] = limsOf(st), az = parseFloat(st.az) || 0, w = lL + lR, a0 = az - lL;     // sector: ccw edge a0, width w
+function pullOff(st, c, m) {                                        // pull the sector edge nearest one line out to the required angle; returns a message
+  const [lL, lR] = limsOf(st), az = parseFloat(st.az) || 0, w = lL + lR, a0 = az - lL;       // sector: ccw edge a0, width w
   let side = c.side; if (!side) side = cw(c.sp.lo + c.sp.width / 2, az) < 180 ? 'cw' : 'ccw';
   const edge = side === 'cw' ? c.sp.hi + m : c.sp.lo - m;           // bearing the near edge must be pulled to
   const far = side === 'cw' ? a0 + w : a0;                          // the far edge, which keeps its bearing if it can
   const gap = side === 'cw' ? cw(edge, far) : cw(far, edge);        // room left between the two edges after the move
-  let msg;
   // shrink the near edge only if that leaves at least half the sector (and 5 deg)
-  if (w > 0.05 && gap < 180 && gap >= Math.max(5, w * 0.5)) { setLimit(side === 'cw' ? 'L' : 'R', edge); msg = `${side === 'cw' ? 'Left' : 'Right'} limit set to ${d3(edge)}°, ${m}° off the assault line.`; }
-  else {                                                            // shrinking would gut the sector (e.g. a 15 deg tripod traverse): slide it away and keep its width
-    st.az = nz(side === 'cw' ? edge + w / 2 : edge - w / 2).toFixed(1); st.limL = st.limR = (w / 2).toFixed(1); syncForm();
-    msg = `Sector moved to ${d3(side === 'cw' ? edge : edge - w)}°–${d3(side === 'cw' ? edge + w : edge)}°, ${m}° off the assault line` + (w > 0.05 ? `, keeping its ${w.toFixed(0)}° width.` : '.');
-  }
-  update(); setHint(msg, 8000);
+  if (w > 0.05 && gap < 180 && gap >= Math.max(5, w * 0.5)) { setLimit(side === 'cw' ? 'L' : 'R', edge); return `${side === 'cw' ? 'Left' : 'Right'} limit set to ${d3(edge)}°, ${m}° off ${c.line.name}.`; }
+  // otherwise shrinking would gut the sector (e.g. a 15 deg tripod traverse): slide it away and keep its width
+  st.az = nz(side === 'cw' ? edge + w / 2 : edge - w / 2).toFixed(1); st.limL = st.limR = (w / 2).toFixed(1); syncForm();
+  return `Sector moved to ${d3(side === 'cw' ? edge : edge - w)}°–${d3(side === 'cw' ? edge + w : edge)}°, ${m}° off ${c.line.name}` + (w > 0.05 ? `, keeping its ${w.toFixed(0)}° width.` : '.');
 }
-$('asMargin').addEventListener('input', e => { assault.margin = e.target.value; scheduleSave(); renderAssault(); renderSheet(); drawSoon(); });
+function keepOff() {                                                // bring the selected position at least the margin off every assault line
+  const st = cur(), m = marginDeg();
+  if (!doneLines().length) { setHint('Add an assault line first (+ at the top, then New assault line)', 6000); return; }
+  if (!originOf(st)) { setHint('Place the position first'); return; }
+  let c = worstClear(st);
+  if (c.deg >= m - 0.05) { setHint(`Already ${c.deg.toFixed(0)}° off the closest assault line (need ${m}°)`, 5000); return; }
+  snap(); let msg = '';
+  for (let pass = 0; pass < doneLines().length + 2 && c.deg < m - 0.05; pass++) { msg = pullOff(st, c, m); c = worstClear(st); }
+  update(); setHint(msg + (c.deg < m - 0.05 ? ' Could not clear every line with this sector: adjust it by hand.' : ''), 8000);
+}
+const nextAsName = () => { let n = assaults.length + 1; while (assaults.some(l => l.name === 'Assault ' + n)) n++; return 'Assault ' + n; };
+function startAssault() { document.querySelector('#tabs [data-tab=assault]').click(); setTool('asA'); }
+function delAssault(id) { snap(); assaults = assaults.filter(l => l.id !== id); update(); }
+$('asMargin').addEventListener('input', e => { assaultMargin = e.target.value; scheduleSave(); renderAssault(); renderSheet(); drawSoon(); });
 $('asMargin').addEventListener('focus', snap);
-$('asPlace').onclick = () => setTool('asA');
+$('asPlace').onclick = startAssault;
 $('asKeep').onclick = keepOff;
-$('asClear').onclick = () => { if (!assault.A && !assault.B) return; snap(); assault.A = assault.B = null; update(); setHint('Assault line cleared (Undo brings it back)', 5000); };
+$('asList').addEventListener('input', e => { const n = e.target.closest('[data-asname]'); if (!n) return; const l = assaults.find(x => x.id === +n.dataset.asname); if (l) { l.name = n.value || 'Assault'; scheduleSave(); renderAssault(); drawSoon(); } });
+$('asList').addEventListener('click', e => {
+  const d = e.target.closest('[data-asdel]'), g = e.target.closest('[data-asgo]');
+  if (d) delAssault(+d.dataset.asdel);
+  else if (g && map) { const l = assaults.find(x => x.id === +g.dataset.asgo); if (l && l.A && l.B) map.fitBounds(L.latLngBounds([ll2(l.A), ll2(l.B)]).pad(0.6), { maxZoom: 18 }); }
+});
 let asLayer = null; const asMk = {};
 function drawAssault() {
   if (asLayer) { asLayer.remove(); asLayer = null; }
-  ['A', 'B'].forEach(k => {
-    if (!assault[k]) { if (asMk[k]) { asMk[k].remove(); asMk[k] = null; } return; }
-    if (!asMk[k]) {
-      asMk[k] = L.marker(ll2(assault[k]), { draggable: true, icon: pinIcon(k, 'asl'), zIndexOffset: 480 }).addTo(map);
-      asMk[k].on('dragstart', snap);
-      asMk[k].on('drag', e => { const ll = e.target.getLatLng(); assault[k] = { lat: ll.lat, lon: ll.lng }; renderAssault(); drawSoon(); });
-      asMk[k].on('dragend', () => update());
-      asMk[k].on('click', () => { if (tool === 'del') { snap(); assault.A = assault.B = null; update(); } });
-      asMk[k].on('contextmenu', () => { snap(); assault.A = assault.B = null; update(); });
-    } else if (!moving(asMk[k])) asMk[k].setLatLng(ll2(assault[k]));
-  });
-  if (!(assault.A && assault.B)) return;
+  const want = new Set();
+  assaults.forEach((l, i) => ['A', 'B'].forEach(k => {
+    if (!l[k]) return;
+    const key = l.id + k, id = l.id, icon = pinIcon(`${i + 1}${k}`, 'asl'); want.add(key);
+    if (!asMk[key]) {
+      asMk[key] = L.marker(ll2(l[k]), { draggable: true, icon, zIndexOffset: 480 }).addTo(map);
+      asMk[key].on('dragstart', snap);
+      asMk[key].on('drag', e => { const q = assaults.find(x => x.id === id), ll = e.target.getLatLng(); if (q) { q[k] = { lat: ll.lat, lon: ll.lng }; renderAssault(); drawSoon(); } });
+      asMk[key].on('dragend', () => update());
+      asMk[key].on('click', () => { if (tool === 'del') delAssault(id); });
+      asMk[key].on('contextmenu', () => delAssault(id));
+    } else if (!moving(asMk[key])) { asMk[key].setLatLng(ll2(l[k])); asMk[key].setIcon(icon); }
+  }));
+  Object.keys(asMk).forEach(key => { if (!want.has(key)) { asMk[key].remove(); delete asMk[key]; } });
+  const lines = doneLines(); if (!lines.length) return;
   asLayer = L.layerGroup().addTo(map);
-  L.polyline([ll2(assault.A), ll2(assault.B)], { color: '#2ea043', weight: 5, opacity: .95, interactive: false }).addTo(asLayer);
+  lines.forEach(l => {
+    L.polyline([ll2(l.A), ll2(l.B)], { color: '#2ea043', weight: 5, opacity: .95, interactive: false }).addTo(asLayer);
+    L.marker([(l.A.lat + l.B.lat) / 2, (l.A.lon + l.B.lon) / 2], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', html: `<div class="edge">${esc(l.name)}</div>`, iconSize: [1, 1] }) }).addTo(asLayer);
+  });
 }
 
 // ---------- map tools
@@ -1498,7 +1533,8 @@ function mapClick(ll) {
   const st = cur(), p = { lat: ll.lat, lon: ll.lng };
   if (tool === 'L') { snap(); setPoint('L', p); setTool('move'); update(); return; }
   if (tool === 'trp') { addTrp(p); return; }
-  if (tool === 'asA' || tool === 'asB') { snap(); assault[tool === 'asA' ? 'A' : 'B'] = p; setTool(tool === 'asA' ? 'asB' : 'move'); update(); return; }
+  if (tool === 'asA') { snap(); const l = { id: ++uid, name: nextAsName(), A: p, B: null }; assaults.push(l); placingAs = l.id; setTool('asB'); update(); return; }
+  if (tool === 'asB') { const l = assaults.find(x => x.id === placingAs); if (l) l.B = p; placingAs = null; setTool('move'); update(); return; }
   if (!originOf(st)) { setHint('Place the position first (Left tool)'); return; }
   if (tool === 'dir') { snap(); st.az = inv(originOf(st), p).bearing.toFixed(1); $('az').value = st.az; setTool('move'); update(); return; }
   if (tool === 'limL' || tool === 'limR') { snap(); setLimit(tool === 'limL' ? 'L' : 'R', inv(originOf(st), p).bearing); setTool('move'); update(); }
@@ -1547,7 +1583,7 @@ function kmlDoc(list, name) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\n<name>${kx(name)}</name>\n<description>PLANNING AID. Angles are true azimuth from the direction of fire.</description>\n` +
     '<Style id="line"><LineStyle><color>ffffffff</color><width>2</width></LineStyle></Style>\n<Style id="dir"><LineStyle><color>ff2d30e0</color><width>3</width></LineStyle></Style>\n' +
     '<Style id="assault"><LineStyle><color>ff43a02e</color><width>5</width></LineStyle></Style>\n<Style id="sector"><LineStyle><color>ff2d30e0</color><width>2</width></LineStyle><PolyStyle><color>402d30e0</color></PolyStyle></Style>\n' +
-    (assault.A && assault.B ? `<Folder><name>Assault line</name><Placemark><name>Assault line</name><description>${kx('Keep fire at least ' + marginDeg() + ' deg off the line')}</description><styleUrl>#assault</styleUrl><LineString><coordinates>${kc(assault.A)} ${kc(assault.B)}</coordinates></LineString></Placemark></Folder>\n` : '') +
+    (doneLines().length ? `<Folder><name>Assault lines</name>${doneLines().map(l => `<Placemark><name>${kx(l.name)}</name><description>${kx('Keep fire at least ' + marginDeg() + ' deg off the line')}</description><styleUrl>#assault</styleUrl><LineString><coordinates>${kc(l.A)} ${kc(l.B)}</coordinates></LineString></Placemark>`).join('')}</Folder>\n` : '') +
     (trps.length ? `<Folder><name>TRPs</name>\n${trps.map(t => `<Placemark><name>${kx(t.name)}</name><description>${kx(mgrsOf(t) || fmtLL(t))}</description><Point><coordinates>${kc(t)}</coordinates></Point></Placemark>\n`).join('')}</Folder>\n` : '') + list.map(kmlFolder).join('') + '</Document></kml>\n';
 }
 function saveFile(text, fname, type) { const el = document.createElement('a'); el.href = URL.createObjectURL(new Blob([text], { type })); el.download = fname; el.click(); }
@@ -1563,14 +1599,14 @@ $('kml').onclick = () => {
 
 // ---------- save, open, autosave
 let saveT = 0;
-function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify({ v: 3, positions, trps, assault, active })); } catch (e) { /* private mode / storage full */ } }, 250); }
-$('pSave').onclick = () => { saveFile(JSON.stringify({ app: 'fire-planner', v: 3, positions, trps, assault, active }, null, 1), `FirePlan_project_${positions.length}_positions.json`, 'application/json'); setHint('Project saved. Open it on another device with "Open project".', 6000); };
+function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify({ v: 4, positions, trps, assaults, assaultMargin, active })); } catch (e) { /* private mode / storage full */ } }, 250); }
+$('pSave').onclick = () => { saveFile(JSON.stringify({ app: 'fire-planner', v: 4, positions, trps, assaults, assaultMargin, active }, null, 1), `FirePlan_project_${positions.length}_positions.json`, 'application/json'); setHint('Project saved. Open it on another device with "Open project".', 6000); };
 $('pOpen').onclick = () => $('pFile').click();
 $('pFile').onchange = e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   f.text().then(t => {
     const o = JSON.parse(t); if (!o || !Array.isArray(o.positions) || !o.positions.length) throw new Error('no positions');
-    snap(); ({ positions, trps, assault, active } = loadProject(o)); syncForm(); othersSig = ''; update(true);
+    snap(); ({ positions, trps, assaults, assaultMargin, active } = loadProject(o)); syncForm(); othersSig = ''; update(true);
     setHint(`Opened ${positions.length} position${positions.length > 1 ? 's' : ''} (Undo restores the previous project)`, 7000);
   }).catch(() => setHint('That file is not a Fire Planner project.', 6000));
 };
@@ -1619,7 +1655,7 @@ const actionState = () => cur().L ? 'main' : 'start';
 function renderSheet() {
   if (!isPhone() || !positions[active]) return;
   const st = cur(), o = originOf(st), az = parseFloat(st.az) || 0, [lL, lR] = limsOf(st), parts = [`<b>${esc(st.name)}</b>`];
-  { const c = clearance(st); if (c && c.deg < marginDeg() - 0.05) parts.push(`<span style="color:var(--bad);font-weight:700">\u26A0 ${c.deg.toFixed(0)}\u00b0 off line</span>`); }   // first, so it is never cut off
+  { const c = worstClear(st); if (c && c.deg < marginDeg() - 0.05) parts.push(`<span style="color:var(--bad);font-weight:700">\u26A0 ${c.deg.toFixed(0)}\u00b0 off line</span>`); }   // first, so it is never cut off
   if (o) parts.push(`az ${d3(az)}°`);
   if (lL + lR > 0.05) parts.push(`${d3(az - lL)}°–${d3(az + lR)}°`);
   if (trps.length) parts.push(`${trps.length} TRP${trps.length > 1 ? 's' : ''}`);
@@ -1648,10 +1684,10 @@ function openMenu(m, anchor) {
   else { m.style.bottom = 'auto'; m.style.top = (b.bottom + 6) + 'px'; m.style.maxHeight = Math.max(120, below) + 'px'; }
   m.classList.add('open');
 }
-document.addEventListener('click', e => { if (!e.target.closest('.menu') && !e.target.closest('#actRow')) closeMenus(); });
+document.addEventListener('click', e => { if (!e.target.closest('.menu') && !e.target.closest('#actRow') && !e.target.closest('#p-new')) closeMenus(); });
 $('moremenu').onclick = e => {
   const b = e.target.closest('button[data-m]'); if (!b) return; const k = b.dataset.m; closeMenus();
-  if (k === 'asl') setTool('asA'); else if (k === 'asKeep') keepOff();
+  if (k === 'asl') startAssault(); else if (k === 'asKeep') keepOff();
   else if (k === 'limL' || k === 'limR' || k === 'del') setTool(k); else if (k === 'fit') fit();
   else if (k === 'copy') $('tCopy').click(); else if (k === 'kml') $('kml').click(); else if (k === 'theme') $('themeBtn').click();
 };
@@ -1699,7 +1735,7 @@ function boot() {
   try { applyTheme(localStorage.getItem(THEME_KEY) || 'auto'); } catch (e) { applyTheme('auto'); }
   let saved = null; try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { /* ignore */ }
   let restored = false;
-  if (saved && Array.isArray(saved.positions) && saved.positions.length) { ({ positions, trps, assault, active } = loadProject(saved)); restored = true; }
+  if (saved && Array.isArray(saved.positions) && saved.positions.length) { ({ positions, trps, assaults, assaultMargin, active } = loadProject(saved)); restored = true; }
   else positions = [blank('SBF 1')];
   syncForm(); applyPhone(); initMap(); update(restored && !!cur().L);
   setTimeout(() => { if (map) map.invalidateSize(); }, 250);
