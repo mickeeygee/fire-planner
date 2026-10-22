@@ -5,7 +5,7 @@ A browser tool for planning support-by-fire positions, sectors of fire and targe
 This is a **tactical planning aid**. It is not a range safety tool: it does not draw surface danger zones. For live-fire safety use a separate range safety tool such as [sdz-planner](https://github.com/mickeeygee/sdz-planner).
 
 ## Use it
-Open `index.html` (or the hosted page). Place each position as a single point. Type lat/lon or MGRS, tap the map, or use your GPS. Set the azimuth of the direction of fire and the left and right limits. Add TRPs by tapping the map, typing a coordinate, or entering an azimuth and distance. Each TRP shows:
+Open `index.html` (or the hosted page). Place each position as a single point. Type lat/lon or MGRS, tap the map, or use your GPS. Set the azimuth of the direction of fire and the left and right limits. Add TRPs from the **+** menu (New TRP) and tap the map, typing a coordinate, or entering an azimuth and distance. Each TRP shows:
 
 - distance, azimuth in degrees and mils
 - how many degrees (and mils) it is left or right of the direction of fire

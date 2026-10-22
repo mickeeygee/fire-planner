@@ -124,7 +124,7 @@
         <select id="posSel" aria-label="Position"></select>
         <input type="text" id="p-name" hidden maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Position name">
         <button id="p-edit" aria-label="Rename position"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button>
-        <button id="p-new" aria-label="Add a position or assault line"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button id="p-new" aria-label="Add a position, TRP or assault line"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
         <span id="draft" class="phone-only" title="Planning aid only. Confirm ranges against your manual and SOP.">PLANNING<br>AID</span>
       </div>
       <div id="sumText" class="phone-only"></div>
@@ -208,6 +208,7 @@
 
 <div id="newmenu" class="menu">
   <button data-n="pos">New SBF position</button>
+  <button data-n="trp">New TRP</button>
   <button data-n="asl">New assault line</button>
 </div>
 <div id="moremenu" class="menu">
@@ -442,7 +443,7 @@ function delPos() {
   setHint(`Deleted "${nm}" (Undo brings it back)`, 6000);
 }
 $('p-new').onclick = () => openMenu($('newmenu'), $('p-new'));
-$('newmenu').onclick = e => { const b = e.target.closest('button[data-n]'); if (!b) return; closeMenus(); if (b.dataset.n === 'pos') { newPos(false); if (isPhone()) editName(true); } else startAssault(); }; $('posCopy').onclick = () => newPos(true); $('posDel').onclick = delPos;
+$('newmenu').onclick = e => { const b = e.target.closest('button[data-n]'); if (!b) return; closeMenus(); if (b.dataset.n === 'pos') { newPos(false); if (isPhone()) editName(true); } else if (b.dataset.n === 'trp') startTrp(); else startAssault(); }; $('posCopy').onclick = () => newPos(true); $('posDel').onclick = delPos;
 $('posSel').onchange = e => activate(+e.target.value);
 
 // ---------- TRPs: one list shared by every position; angles are shown relative to the active position
@@ -469,7 +470,8 @@ function addTrp(ll) {
   setHint(originOf(cur()) ? trpLine(cur(), trps[trps.length - 1]) : `TRP ${n} added`, 9000);
 }
 function delTrp(id) { snap(); trps = trps.filter(t => t.id !== id); update(); }
-$('tMap').onclick = () => setTool('trp');
+function startTrp() { document.querySelector('#tabs [data-tab=trp]').click(); setTool('trp'); }
+$('tMap').onclick = startTrp;
 $('tAddC').onclick = () => {
   const ll = MGRS.parseCoord($('tC').value.trim());
   if (!ll) { $('tC').classList.add('bad'); setHint('Not recognised. Use "lat, lon" or MGRS like 17S QV 12345 67890', 6000); return; }
