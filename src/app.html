@@ -103,7 +103,8 @@
     <button id="perp" style="margin-top:8px;width:100%">Face perpendicular to the line</button>
     <h2>Weapon</h2>
     <div class="row"><div><label>Weapon (point/area, m)</label><select id="wpn"></select></div><div><label>Max effective range (m)</label><input type="number" id="max" min="0" step="any" placeholder="optional"></div></div>
-    <div class="sub">The sector fan on the map is drawn out to the max effective range. Preset ranges are typical published figures.</div>
+    <div class="sub" id="wpnInfo"></div>
+    <div class="sub">The sector fan on the map is drawn out to the max effective range. Preset ranges are typical published figures: check them against your handbook and weapon manual.</div>
   </section>
 
   <section data-sec="trp">
@@ -186,8 +187,10 @@ function inv(a, b) {                                              // distance (m
 
 // ---------- weapon presets: typical published employment ranges (m). Planning defaults only.
 const WPN = [
-  { n: 'M4 / M16 rifle', pt: 500, ar: 600 }, { n: 'M249 SAW', pt: 600, ar: 800 }, { n: 'M240B', pt: 800, ar: 1100 },
-  { n: 'M2 .50 cal', pt: 1500, ar: 1830 }, { n: 'Mk 19 40 mm', pt: 1500, ar: 2212 }, { n: 'M203 40 mm', pt: 150, ar: 350 }
+  // pt = point target, ar = area target, gz = maximum grazing fire (all metres)
+  { n: 'M4 / M16 rifle', pt: 500, ar: 600 }, { n: 'M249 SAW', pt: 600, ar: 800, gz: 600 },
+  { n: 'M240B bipod', pt: 600, ar: 800, gz: 600 }, { n: 'M240B tripod', pt: 800, ar: 1100, gz: 600 },
+  { n: 'M2 .50 cal', pt: 1500, ar: 1830, gz: 700 }, { n: 'Mk 19 40 mm', pt: 1500, ar: 2212 }, { n: 'M203 40 mm', pt: 150, ar: 350 }
 ];
 $('wpn').innerHTML = '<option value="">Custom / none</option>' + WPN.map((w, i) => `<option value="${i}">${w.n} (${w.pt}/${w.ar})</option>`).join('');
 
@@ -299,6 +302,9 @@ $('perp').onclick = () => {
   snap(); const v = inv(st.L, st.R); st.az = nz(v.bearing - 90).toFixed(1); $('az').value = st.az; update();
   setHint(`Facing ${st.az}°, perpendicular to the line (flip it with +180 if your target is behind)`, 6000);
 };
+function wpnInfo() {
+  const w = WPN[+cur().wpn]; $('wpnInfo').textContent = w ? `${w.n}: point ${w.pt} m, area ${w.ar} m${w.gz ? `, grazing fire to ${w.gz} m` : ''}. Max effective range uses the area figure.` : '';
+}
 $('wpn').onchange = e => {
   const st = cur(); snap(); st.wpn = e.target.value;
   if (e.target.value !== '') { st.max = String(WPN[+e.target.value].ar); $('max').value = st.max; }
@@ -532,7 +538,7 @@ function fit() {
   map.fitBounds(L.latLngBounds(pts.map(ll2)).extend(L.latLng(o.lat, o.lon).toBounds(sectorRadius(st) * 1.1)), { maxZoom: 17, padding: [30, 30] });
 }
 function update(doFit) {
-  scheduleSave(); renderSel(); readout('L'); readout('R'); lineInfo(); renderTrps(); draw();
+  scheduleSave(); wpnInfo(); renderSel(); readout('L'); readout('R'); lineInfo(); renderTrps(); draw();
   if (doFit === true) fit();
 }
 
