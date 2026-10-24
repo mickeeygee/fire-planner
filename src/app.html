@@ -203,8 +203,6 @@
     <button data-tool="move" class="active" title="Drag pins and handles (Esc)">Move</button>
     <button data-tool="L" title="Place the position">Position</button>
     <button data-tool="dir" title="Set the direction of fire">Dir</button>
-    <button data-tool="limL" title="Set the left limit of fire">L lim</button>
-    <button data-tool="limR" title="Set the right limit of fire">R lim</button>
     <button data-tool="del" title="Click a pin to delete it">Delete</button>
     <button id="tView" title="Hide the arrows for a clearer map (the fan and lines stay)">Clear view</button>
     <button id="tUndo" title="Undo (Ctrl+Z)">Undo</button>
@@ -241,8 +239,6 @@
 </div>
 <div id="moremenu" class="menu">
   <button data-m="reset">Reset arrow positions</button>
-  <button data-m="limL">Set left limit of fire</button>
-  <button data-m="limR">Set right limit of fire</button>
   <button data-m="del">Delete pins</button>
   <button data-m="fit">Zoom to this position</button>
   <hr>
@@ -391,7 +387,7 @@ function trpLine(st, t) {
 let hintT = 0;
 function setHint(t, ms) { $('hint').textContent = t || ''; clearTimeout(hintT); if (t && tool === 'move') hintT = setTimeout(() => { if (tool === 'move') $('hint').textContent = ''; }, ms || 4000); }
 const HINTS = { L: 'Click the map to place the position', asA: 'Click the map for one end of the new assault line', asB: 'Click the map for the other end of the assault line', dir: 'Click the map in the direction of fire',
-  limL: 'Click the map in the direction of the LEFT limit of fire', limR: 'Click the map in the direction of the RIGHT limit of fire', trp: 'Click the map to place a TRP. Press Esc when finished', del: 'Click a pin to delete it' };
+  trp: 'Click the map to place a TRP. Press Esc when finished', del: 'Click a pin to delete it' };
 const verb = t => TOUCH ? t.replace(/^Click/, 'Tap') : t;
 function setTool(t) {
   if (t !== 'asB' && placingAs != null) {                          // a half-placed assault line is dropped
@@ -399,7 +395,7 @@ function setTool(t) {
   }
   tool = t;
   document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
-  if (map) map.getContainer().style.cursor = ['L', 'dir', 'limL', 'limR', 'trp', 'asA', 'asB'].includes(t) ? 'crosshair' : '';
+  if (map) map.getContainer().style.cursor = ['L', 'dir', 'trp', 'asA', 'asB'].includes(t) ? 'crosshair' : '';
   $('hint').textContent = t === 'move' ? '' : verb(HINTS[t]) + (isPhone() ? '   \u2715 Cancel' : '');
   if (isPhone() && t !== 'move') setSheet('peek');
   renderSheet();
@@ -490,7 +486,9 @@ function newPos(copy) {
     st.L = st.L && dest(st.L, 90, 60);
   } else st = blank(nextName(), b);
   positions.push(st); active = positions.length - 1; setTool('move'); syncForm(); update(copy && !!st.L);
-  setHint(copy ? 'Copied and nudged 60 m east. Drag the pin to move it.' : 'New position added. Place it with the Position tool.', 6000);
+  if (copy) setHint('Copied and nudged 60 m east. Drag the pin to move it.', 6000);
+  else if (!isPhone()) setTool('L');                                // desktop: the next click on the map places it
+  else setHint('New position added. Tap "Place on map" to put it down.', 6000);
 }
 function delPos() {
   snap(); const nm = cur().name; positions.splice(active, 1);
@@ -853,13 +851,12 @@ function drawAssault() {
 // ---------- map tools
 function mapClick(ll) {
   const st = cur(), p = { lat: ll.lat, lon: ll.lng };
-  if (tool === 'L') { snap(); setPoint('L', p); setTool('move'); update(); return; }
+  if (tool === 'L') { snap(); setPoint('L', p); setTool('move'); update(); setHint('Placed. Drag the red arrow to aim, and the orange arrows to set the left and right limits.', 10000); return; }
   if (tool === 'trp') { addTrp(p); return; }
   if (tool === 'asA') { snap(); const l = { id: ++uid, name: nextAsName(), A: p, B: null }; assaults.push(l); placingAs = l.id; setTool('asB'); update(); return; }
   if (tool === 'asB') { const l = assaults.find(x => x.id === placingAs); if (l) l.B = p; placingAs = null; setTool('move'); update(); return; }
-  if (!originOf(st)) { setHint('Place the position first (Left tool)'); return; }
+  if (!originOf(st)) { setHint('Place the position first (Position on the toolbar)'); return; }
   if (tool === 'dir') { snap(); st.az = inv(originOf(st), p).bearing.toFixed(1); $('az').value = st.az; setTool('move'); update(); return; }
-  if (tool === 'limL' || tool === 'limR') { snap(); setLimit(tool === 'limL' ? 'L' : 'R', inv(originOf(st), p).bearing); setTool('move'); update(); }
 }
 document.querySelectorAll('#toolbar [data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool === tool && tool !== 'move' ? 'move' : b.dataset.tool));
 function setClearView(on, quiet) {
@@ -1022,7 +1019,7 @@ function openMenu(m, anchor) {
 document.addEventListener('click', e => { if (!e.target.closest('.menu') && !e.target.closest('#actRow') && !e.target.closest('#p-new')) closeMenus(); });
 $('moremenu').onclick = e => {
   const b = e.target.closest('button[data-m]'); if (!b) return; const k = b.dataset.m; closeMenus();
-  if (k === 'reset') resetHandles(); else if (k === 'limL' || k === 'limR' || k === 'del') setTool(k); else if (k === 'fit') fit();
+  if (k === 'reset') resetHandles(); else if (k === 'del') setTool(k); else if (k === 'fit') fit();
   else if (k === 'copy') $('tCopy').click(); else if (k === 'kml') $('kml').click(); else if (k === 'theme') $('themeBtn').click();
 };
 function editName(on) {
@@ -1088,7 +1085,8 @@ function boot() {
   if (!accepted) showTerms(true);
   setTimeout(() => { if (map) map.invalidateSize(); }, 250);
   if (restored) setHint(`Restored ${positions.length} position${positions.length > 1 ? 's' : ''} from your last session`, 6000);
-  else setHint(isPhone() ? 'Tap "Use my location" or "Place on map" to start' : 'Start with the Left tool, or type coordinates in the sidebar', 8000);
+  else if (isPhone()) setHint('Tap "Use my location" or "Place on map" to start', 8000);
+  if (!cur().L && !isPhone()) setTool('L');                         // desktop: the first click on the map places the position
 }
 boot();
 </script>

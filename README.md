@@ -20,6 +20,8 @@ Picking an M240B preset sets the sector limits from its traverse (tripod 15°, b
 
 **Range bands:** pick a weapon (Setup tab) and the fan is colored by where its fire ends: green out to grazing fire, yellow out to point-target range, orange out to area-target range, with a bright arc where each one ends. A small color key on the map (under the zoom buttons) names the weapon and gives each color's range. Each TRP then says which kinds of fire reach it (for example "Only area fire reaches it"). The ranges are the typical published figures in the weapon list, so check them against your manual. A custom range with no weapon selected shows the plain red fan.
 
+**Placing and aiming:** on desktop the Position tool starts active, so the first click on the map places the position (the same goes for a new SBF from the **+** menu). Then drag the red arrow to aim and the two orange arrows to set the left and right limits. There are no separate limit buttons.
+
 **Arrows:** the red aim arrow and the two orange limit arrows can be dragged along their lines to move them out of the way (and sideways to change the angle). Each one remembers where you put it, per position. **Reset arrow positions** (Setup tab, or More on a phone) puts them back.
 
 **Clear view:** a button on the map toolbar (and in the phone action row) hides the red and orange arrows and the color key so only the fan, lines, labels and pins show. It turns into **Show arrows**, and the choice is remembered on that device.
